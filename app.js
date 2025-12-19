@@ -741,19 +741,37 @@ function resetState(){
   });
 
   if (printBtn) {
-    printBtn.addEventListener("click", () => {
-      const { results, topSorted } = computeScores();
-      showResults();
-      populatePrintView(results, topSorted);
-      renderRadarPrint(results, "print");
-      requestAnimationFrame(() => window.print());
+  printBtn.addEventListener("click", () => {
+    const { results, topSorted } = computeScores();
+
+    showResults();
+    populatePrintView(results, topSorted);
+
+    // Ensure print view is not display:none at time of render (screen mode)
+    const pv = el("printView");
+    if (pv) pv.style.display = "block";
+
+    renderRadarPrint(results, "print");
+
+    requestAnimationFrame(() => {
+      window.print();
+      // restore inline display override (optional)
+      if (pv) pv.style.display = "";
     });
+  });
   }
 
   window.addEventListener("beforeprint", () => {
-    const { results, topSorted } = computeScores();
-    showResults();
-    populatePrintView(results, topSorted);
-    renderRadarPrint(results, "print");
+  const { results, topSorted } = computeScores();
+
+  showResults();
+  populatePrintView(results, topSorted);
+
+  const pv = el("printView");
+  if (pv) pv.style.display = "block";
+
+  renderRadarPrint(results, "print");
   });
+
+   
 })();
