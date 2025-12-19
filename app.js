@@ -449,25 +449,54 @@ function renderRadarPrint(scores){
       labels,
       datasets: [{
         data,
-        borderWidth: 2,
-        backgroundColor: "rgba(0,0,0,0.06)",
-        borderColor: "rgba(0,0,0,0.85)",
-        pointBackgroundColor: "rgba(0,0,0,0.85)",
-        pointBorderColor: "rgba(0,0,0,0.85)",
-        pointRadius: 3
+        borderWidth: 3,                         // thicker outline
+        backgroundColor: "rgba(0,0,0,0.15)",    // stronger fill for print
+        borderColor: "#111111",                  // near-black outline
+        pointBackgroundColor: "#111111",
+        pointBorderColor: "#111111",
+        pointRadius: 4                           // slightly larger points
       }]
     },
     options: {
       responsive: false,
-      plugins: { legend: { display:false } },
+      plugins: {
+        legend: { display:false }
+      },
       scales: {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: "rgba(0,0,0,0.15)" },
-          angleLines: { color: "rgba(0,0,0,0.15)" },
-          pointLabels: { color: "#000", font: { size: 11, weight: "600", lineHeight: 1.2 } },
-          ticks: { color: "#000", backdropColor: "transparent", stepSize: 20 }
+
+          // Darker grid for print clarity
+          grid: {
+            color: "rgba(0,0,0,0.25)",
+            lineWidth: 1.25
+          },
+          angleLines: {
+            color: "rgba(0,0,0,0.25)",
+            lineWidth: 1.25
+          },
+
+          // Axis labels
+          pointLabels: {
+            color: "#000000",
+            font: {
+              size: 12,
+              weight: "700",
+              lineHeight: 1.25
+            }
+          },
+
+          // Tick labels
+          ticks: {
+            color: "#000000",
+            backdropColor: "transparent",
+            stepSize: 20,
+            font: {
+              size: 11,
+              weight: "600"
+            }
+          }
         }
       }
     }
