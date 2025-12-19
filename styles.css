@@ -352,6 +352,6 @@ select{appearance:auto}
 }
 /* Counselor print chart emphasis */
 .print-chart{
-  background: #ffffff;
-  border: 2px solid #000000;
+  background: var(--card);
+  border: 2px solid var(--line);
 }
