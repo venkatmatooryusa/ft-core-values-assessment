@@ -323,6 +323,14 @@ select{appearance:auto}
 }
 .muted{ color:var(--muted); }
 
+/* Prevent accidental hard white blocks on screen */
+@media screen{
+  .print-chart, .print-summary{
+    background: var(--card) !important;
+  }
+}
+
+
 /* ---------- PRINT RULES ---------- */
 @media print{
   /* Force a clean white page regardless of theme */
