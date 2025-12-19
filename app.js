@@ -541,6 +541,45 @@ function populatePrintView(results, topSorted){
       `;
       tbody.appendChild(tr);
     });
+// NEW: build the executive 2-column print version
+renderExecutiveScoresGrid(results);
+}
+
+function renderExecutiveScoresGrid(results){
+  const host = el("scoresTablePrintExec");
+  if(!host) return;
+
+  const sorted = results.slice().sort((a,b)=> b.score100 - a.score100);
+
+  const colA = sorted.slice(0,3);
+  const colB = sorted.slice(3,6);
+
+  const makeCol = (rows) => {
+    const col = document.createElement("div");
+    col.className = "exec-col";
+
+    rows.forEach(r=>{
+      const row = document.createElement("div");
+      row.className = "exec-row";
+      row.innerHTML = `
+        <div class="exec-left">
+          <div class="exec-value">${escapeHtml(r.value)}</div>
+          <div class="exec-signal">${escapeHtml(signalLine(r.value))}</div>
+        </div>
+        <div class="exec-right">
+          <div class="exec-score">${r.score100}</div>
+          <div class="exec-band">${escapeHtml(band(r.score100))}</div>
+        </div>
+      `;
+      col.appendChild(row);
+    });
+
+    return col;
+  };
+
+  host.innerHTML = "";
+  host.appendChild(makeCol(colA));
+  host.appendChild(makeCol(colB));
 }
 
 // ----------------- downloads -----------------
