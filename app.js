@@ -747,4 +747,11 @@ function resetState(){
       requestAnimationFrame(() => window.print());
     });
   }
+
+  window.addEventListener("beforeprint", () => {
+  const { results } = computeScores();
+  renderRadarPrint(results, "print"); // uses high-contrast black-on-white mode
+  });
+ 
+   
 })();
