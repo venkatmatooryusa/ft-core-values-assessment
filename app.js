@@ -469,11 +469,11 @@ function renderRadarPrint(scores){
 
           // Darker grid for print clarity
           grid: {
-            color: "rgba(0,0,0,0.25)",
+            color: "rgba(0,0,0,0.45)",
             lineWidth: 1.25
           },
           angleLines: {
-            color: "rgba(0,0,0,0.25)",
+            color: "rgba(0,0,0,0.35)",
             lineWidth: 1.25
           },
 
@@ -492,6 +492,7 @@ function renderRadarPrint(scores){
             color: "#000000",
             backdropColor: "transparent",
             stepSize: 20,
+            showLabelBackdrop: false,
             font: {
               size: 11,
               weight: "600"
