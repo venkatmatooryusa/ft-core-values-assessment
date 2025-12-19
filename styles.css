@@ -64,8 +64,9 @@ h1{margin:0; font-size:22px; letter-spacing:.2px}
   padding:0 16px;
 }
 
+/* ---------- Cards ---------- */
 .card{
-  background:rgba(255,255,255,.02);
+  background: rgba(255,255,255,.02);
   border:1px solid var(--line);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
@@ -75,6 +76,20 @@ h1{margin:0; font-size:22px; letter-spacing:.2px}
 }
 [data-theme="light"] .card{
   background:var(--card);
+  backdrop-filter:none;
+}
+
+/* IMPORTANT: match counselor card to the same visual language as other cards (prevents mid-page "color shift") */
+.card-print{
+  background: rgba(255,255,255,.02);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  backdrop-filter: blur(8px);
+}
+[data-theme="light"] .card-print{
+  background:var(--card);
+  backdrop-filter:none;
 }
 
 .hidden{display:none !important}
@@ -242,9 +257,6 @@ select{appearance:auto}
 .print-sep{ margin:18px 0; border:none; border-top:1px solid var(--line); }
 
 .print{ margin-top:14px; }
-.card-print{
-  background: var(--card);
-}
 
 .print-header{
   display:flex;
@@ -276,6 +288,7 @@ select{appearance:auto}
   .print-grid{ grid-template-columns:1fr; }
 }
 
+/* Theme-consistent print boxes on screen */
 .print-chart, .print-summary{
   border:1px solid var(--line);
   border-radius:14px;
@@ -283,6 +296,11 @@ select{appearance:auto}
   background: rgba(0,0,0,.06);
 }
 [data-theme="light"] .print-chart, [data-theme="light"] .print-summary{ background:#fbfcff; }
+
+/* Optional emphasis frame (theme-safe) */
+.print-chart{
+  border: 2px solid var(--line);
+}
 
 .print-small{ margin-top:8px; color:var(--muted); font-size:12px; }
 .print-paragraph{ margin:0; color:var(--text); line-height:1.5; }
@@ -323,43 +341,25 @@ select{appearance:auto}
 }
 .muted{ color:var(--muted); }
 
-/* Prevent accidental hard white blocks on screen */
-@media screen{
-  .print-chart, .print-summary{
-    background: var(--card) !important;
-  }
-}
-
-
 /* ---------- PRINT RULES ---------- */
 @media print{
-  /* Force a clean white page regardless of theme */
   html, body{
     background:#fff !important;
     color:#000 !important;
   }
 
-  /* Hide non-print UI */
   header, .intro, .tabs, .sticky, .actions, #about, #assessment, #downloadJsonBtn, #downloadPngBtn, #backBtn, #clearSavedBtn {
     display:none !important;
   }
 
-  /* Show only results + print view */
   #results{ display:block !important; border:none !important; box-shadow:none !important; }
   #printView{ display:block !important; }
 
-  /* Remove shadows/filters for crisp printing */
-  .card, .panel, .print-chart, .print-summary{
+  .card, .panel, .print-chart, .print-summary, .card-print{
     box-shadow:none !important;
     backdrop-filter:none !important;
     background:#fff !important;
   }
 
-  /* Page setup-ish */
   @page { margin: 0.55in; }
-}
-/* Counselor print chart emphasis */
-.print-chart{
-  background: var(--card);
-  border: 2px solid var(--line);
 }
