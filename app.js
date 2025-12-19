@@ -460,6 +460,7 @@ function renderRadarPrint(scores, mode = "screen"){
 
   const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
+
   const isPrint = mode === "print";
   const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
 
@@ -488,6 +489,8 @@ function renderRadarPrint(scores, mode = "screen"){
     },
     options: {
       responsive: false,
+      // ✅ critical: no animation for printing
+      animation: false,
       plugins: { legend: { display:false } },
       scales: {
         r: {
@@ -501,6 +504,10 @@ function renderRadarPrint(scores, mode = "screen"){
       }
     }
   });
+
+  // ✅ force a synchronous draw
+  radarChartPrint.resize();
+  radarChartPrint.update("none");
 }
 
 // ----------------- print view population -----------------
