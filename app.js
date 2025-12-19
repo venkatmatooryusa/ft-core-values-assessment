@@ -70,11 +70,9 @@ const FORCED_QUESTIONS = [
   { id: 40, a: { text: "Making access more equitable", value: FT_VALUES[2] }, b: { text: "Designing elegant experiences", value: FT_VALUES[5] } },
 ];
 
-// Scoring constants (your logic)
+// Scoring constants
 const LIKERT_WEIGHT = 1.5;
 const FORCED_WEIGHT = 1.0;
-// For normalization we use 36 as the max (20*1.5 + ~6). With our design each value appears 5–6 times.
-// We'll compute per-student theoretical max based on appearance counts for slightly cleaner math:
 const LIKERT_MAX_PER_VALUE = 20 * LIKERT_WEIGHT;
 
 // Local storage key
@@ -88,10 +86,12 @@ let state = {
 };
 
 let radarChart = null;
+let radarChartPrint = null;
 
-// --- DOM refs
+// --- DOM helper
 const el = (id) => document.getElementById(id);
 
+// --- DOM refs
 const themeToggle = el("themeToggle");
 const startBtn = el("startBtn");
 const resumeBtn = el("resumeBtn");
@@ -119,14 +119,15 @@ const clearSavedBtn = el("clearSavedBtn");
 const topValues = el("topValues");
 const summaryText = el("summaryText");
 
-const printBtn = document.getElementById("printBtn");
-const printMeta = document.getElementById("printMeta");
-const printDate = document.getElementById("printDate");
-const topValuesPrint = document.getElementById("topValuesPrint");
-const summaryTextPrint = document.getElementById("summaryTextPrint");
-const scoresTablePrint = document.getElementById("scoresTablePrint");
+// Print view refs (IMPORTANT: index.html must contain these IDs)
+const printBtn = el("printBtn"); // add this button in index.html results actions
+const printMeta = el("printMeta");
+const printDate = el("printDate");
+const topValuesPrint = el("topValuesPrint");
+const summaryTextPrint = el("summaryTextPrint");
+const scoresTablePrint = el("scoresTablePrint");
 
-
+// ----------------- utilities -----------------
 function applyTheme(theme){
   state.theme = theme;
   document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
@@ -170,9 +171,7 @@ function showResults(){
 }
 
 function answeredCount(){
-  const likertAnswered = Object.keys(state.likert).length;
-  const forcedAnswered = Object.keys(state.forced).length;
-  return likertAnswered + forcedAnswered;
+  return Object.keys(state.likert).length + Object.keys(state.forced).length;
 }
 
 function updateProgress(){
@@ -181,15 +180,20 @@ function updateProgress(){
   progressBar.style.width = `${(answered/40)*100}%`;
 }
 
-function renderLikert(){
-  likertContainer.innerHTML = "";
-  const scaleLabels = [
-    { v:1, label:"Strongly Disagree" },
-    { v:2, label:"Disagree" },
-    { v:3, label:"Neutral" },
-    { v:4, label:"Agree" },
-    { v:5, label:"Strongly Agree" },
-  ];
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, (m)=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
+}
+
+function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+function band(score){
+  if(score >= 80) return "Core Driver";
+  if(score >= 60) return "Strong Preference";
+  if(score >= 40) return "Supporting Value";
+  return "Low Pull";
+}
 
 function signalLine(value){
   switch(value){
@@ -202,8 +206,24 @@ function signalLine(value){
     default: return "";
   }
 }
-   
-   
+
+function buildSummary(topTwo){
+  const [a,b] = topTwo;
+  const name = (state.meta.name || "You").trim();
+  return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers—especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
+}
+
+// ----------------- rendering -----------------
+function renderLikert(){
+  likertContainer.innerHTML = "";
+  const scaleLabels = [
+    { v:1, label:"Strongly Disagree" },
+    { v:2, label:"Disagree" },
+    { v:3, label:"Neutral" },
+    { v:4, label:"Agree" },
+    { v:5, label:"Strongly Agree" },
+  ];
+
   LIKERT_QUESTIONS.forEach(q=>{
     const wrap = document.createElement("div");
     wrap.className = "question";
@@ -211,7 +231,7 @@ function signalLine(value){
     wrap.innerHTML = `
       <div class="qhead">
         <div>
-          <div class="qnum">Q${q.id} • ${q.value}</div>
+          <div class="qnum">Q${q.id} • ${escapeHtml(q.value)}</div>
           <div class="qtext">${escapeHtml(q.text)}</div>
         </div>
       </div>
@@ -227,7 +247,7 @@ function signalLine(value){
 
       choice.innerHTML = `
         <input type="radio" name="likert_${q.id}" id="${id}" value="${s.v}" />
-        <span>${s.label}</span>
+        <span>${escapeHtml(s.label)}</span>
       `;
 
       const input = choice.querySelector("input");
@@ -300,7 +320,7 @@ function renderForced(){
   });
 }
 
-// --- Validation: require all 40 answered to generate final results
+// ----------------- validation & scoring -----------------
 function validateAllAnswered(){
   const missingLikert = LIKERT_QUESTIONS.filter(q => state.likert[q.id] == null);
   const missingForced = FORCED_QUESTIONS.filter(q => state.forced[q.id] == null);
@@ -319,30 +339,24 @@ function validateAllAnswered(){
   return { ok:false };
 }
 
-// --- Scoring
 function computeScores(){
-  // Raw totals
   const likertTotals = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
   const forcedTotals = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
   const forcedAppearCounts = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
 
-  // Likert sum
   LIKERT_QUESTIONS.forEach(q=>{
     likertTotals[q.value] += Number(state.likert[q.id] || 0);
   });
 
-  // Forced sum + appearance counts
   FORCED_QUESTIONS.forEach(q=>{
     forcedAppearCounts[q.a.value] += 1;
     forcedAppearCounts[q.b.value] += 1;
 
-    const pick = state.forced[q.id]; // "A" or "B"
+    const pick = state.forced[q.id];
     if(pick === "A") forcedTotals[q.a.value] += 1;
     if(pick === "B") forcedTotals[q.b.value] += 1;
   });
 
-  // Weighted + normalization per value.
-  // Max per value = Likert max (20*1.5) + forced appearances (each appearance could be chosen, so max = count*1.0)
   const results = FT_VALUES.map(value=>{
     const weighted = (likertTotals[value]*LIKERT_WEIGHT) + (forcedTotals[value]*FORCED_WEIGHT);
     const maxPossible = LIKERT_MAX_PER_VALUE + (forcedAppearCounts[value] * FORCED_WEIGHT);
@@ -350,56 +364,42 @@ function computeScores(){
 
     return {
       value,
-      likertRaw: likertTotals[value],            // 0–20
-      forcedRaw: forcedTotals[value],            // 0–(appear count)
+      likertRaw: likertTotals[value],
+      forcedRaw: forcedTotals[value],
       weighted,
       maxPossible,
       score100: clamp(normalized, 0, 100),
     };
   });
 
-  // Sort for top values
   const topSorted = [...results].sort((a,b)=> b.score100 - a.score100);
-
   return { results, topSorted };
 }
 
-function band(score){
-  if(score >= 80) return "Core Driver";
-  if(score >= 60) return "Strong Preference";
-  if(score >= 40) return "Supporting Value";
-  return "Low Pull";
+// ----------------- charts -----------------
+function wrappedLabelsOptionB(scores){
+  return scores.map(s =>
+    s.value.includes(" & ")
+      ? s.value.split(" & ").map((part, i, arr) => (i < arr.length - 1 ? part + " &" : part))
+      : [s.value]
+  );
 }
 
-function buildSummary(topTwo){
-  const [a,b] = topTwo;
-  const name = (state.meta.name || "You").trim();
-  return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers—especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
-}
-
-// --- Chart
 function renderRadar(scores){
-  const ctx = document.getElementById("radarChart");
+  const canvas = el("radarChart");
+  if(!canvas) return;
 
-  const labels = scores.map(s =>
-  s.value.includes(" & ")
-    ? s.value.split(" & ").map((part, i, arr) =>
-        i < arr.length - 1 ? part + " &" : part
-      )
-    : [s.value]
-   );
-
-   
+  const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
 
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
   const grid = isLight ? "rgba(10,20,40,.14)" : "rgba(255,255,255,.14)";
   const ticks = isLight ? "rgba(10,20,40,.70)" : "rgba(255,255,255,.75)";
-  const label = isLight ? "#10162a" : "#e9eefc";
+  const labelColor = isLight ? "#10162a" : "#e9eefc";
 
   if(radarChart) radarChart.destroy();
 
-  radarChart = new Chart(ctx, {
+  radarChart = new Chart(canvas, {
     type: "radar",
     data: {
       labels,
@@ -407,7 +407,6 @@ function renderRadar(scores){
         label: "Core Values (0–100)",
         data,
         borderWidth: 2,
-        // Chart.js will default colors; we set minimal FT-tinted transparency via rgba:
         backgroundColor: "rgba(34, 211, 238, 0.20)",
         borderColor: "rgba(251, 191, 36, 0.95)",
         pointBackgroundColor: "rgba(34, 211, 238, 0.95)",
@@ -419,11 +418,7 @@ function renderRadar(scores){
       responsive: true,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.formattedValue} / 100`
-          }
-        }
+        tooltip: { callbacks: { label: (ctx) => `${ctx.formattedValue} / 100` } }
       },
       scales: {
         r: {
@@ -431,46 +426,28 @@ function renderRadar(scores){
           suggestedMax: 100,
           grid: { color: grid },
           angleLines: { color: grid },
-          pointLabels: {
-            color: label,
-            font: { size: 11, weight: "600", lineHeight: 1.2 }
-          },
-          ticks: {
-            color: ticks,
-            backdropColor: "transparent",
-            stepSize: 20
-          }
+          pointLabels: { color: labelColor, font: { size: 11, weight: "600", lineHeight: 1.2 } },
+          ticks: { color: ticks, backdropColor: "transparent", stepSize: 20 }
         }
       }
     }
   });
 }
 
-let radarChartPrint = null;
-
 function renderRadarPrint(scores){
-  const ctx = document.getElementById("radarChartPrint");
+  const canvas = el("radarChartPrint");
+  if(!canvas) return;
 
-  // Option B wrapping: split on " & "
-  const labels = scores.map(s =>
-    s.value.includes(" & ")
-      ? s.value.split(" & ").map((part, i, arr) =>
-          i < arr.length - 1 ? part + " &" : part
-        )
-      : [s.value]
-  );
-
+  const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
 
-  // Print chart should always be black/gray friendly
   if(radarChartPrint) radarChartPrint.destroy();
 
-  radarChartPrint = new Chart(ctx, {
+  radarChartPrint = new Chart(canvas, {
     type: "radar",
     data: {
       labels,
       datasets: [{
-        label: "Core Values (0–100)",
         data,
         borderWidth: 2,
         backgroundColor: "rgba(0,0,0,0.06)",
@@ -489,23 +466,54 @@ function renderRadarPrint(scores){
           suggestedMax: 100,
           grid: { color: "rgba(0,0,0,0.15)" },
           angleLines: { color: "rgba(0,0,0,0.15)" },
-          pointLabels: {
-            color: "#000",
-            font: { size: 11, weight: "600", lineHeight: 1.2 }
-          },
-          ticks: {
-            color: "#000",
-            backdropColor: "transparent",
-            stepSize: 20
-          }
+          pointLabels: { color: "#000", font: { size: 11, weight: "600", lineHeight: 1.2 } },
+          ticks: { color: "#000", backdropColor: "transparent", stepSize: 20 }
         }
       }
     }
   });
 }
 
+// ----------------- print view population -----------------
+function populatePrintView(results, topSorted){
+  if(!printMeta || !printDate || !topValuesPrint || !summaryTextPrint || !scoresTablePrint) return;
 
+  const now = new Date();
+  const metaParts = [];
+  if(state.meta.name) metaParts.push(`Student: ${state.meta.name}`);
+  if(state.meta.grade) metaParts.push(`Grade: ${state.meta.grade}`);
+  printMeta.textContent = metaParts.join(" • ") || "Student: ____________ • Grade: ____";
+  printDate.textContent = now.toLocaleDateString();
 
+  topValuesPrint.innerHTML = "";
+  topSorted.forEach(item=>{
+    const li = document.createElement("li");
+    li.innerHTML = `${escapeHtml(item.value)} — <strong>${item.score100}</strong>
+      <span class="badge">${band(item.score100)}</span>`;
+    topValuesPrint.appendChild(li);
+  });
+
+  summaryTextPrint.textContent = buildSummary(topSorted.slice(0,2));
+
+  const tbody = scoresTablePrint.querySelector("tbody");
+  if(!tbody) return;
+  tbody.innerHTML = "";
+  results
+    .slice()
+    .sort((a,b)=> b.score100 - a.score100)
+    .forEach(row=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(row.value)}</td>
+        <td><strong>${row.score100}</strong></td>
+        <td>${escapeHtml(band(row.score100))}</td>
+        <td>${escapeHtml(signalLine(row.value))}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+}
+
+// ----------------- downloads -----------------
 function downloadJson(payload){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
@@ -516,14 +524,15 @@ function downloadJson(payload){
 }
 
 function downloadChartPng(){
-  const canvas = document.getElementById("radarChart");
+  const canvas = el("radarChart");
+  if(!canvas) return;
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = `forgotten-tracks-radar-${Date.now()}.png`;
   a.click();
 }
 
-// --- UI wiring
+// ----------------- UI wiring -----------------
 function setTab(which){
   if(which === "likert"){
     tabLikert.classList.add("active");
@@ -550,14 +559,7 @@ function resetState(){
   updateProgress();
 }
 
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, (m)=>({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[m]));
-}
-function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
-
-// --- init
+// ----------------- init -----------------
 (function init(){
   const hasSaved = loadSaved();
   applyTheme(state.theme || "dark");
@@ -571,31 +573,30 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
   renderForced();
   updateProgress();
 
-  themeToggle.addEventListener("click", toggleTheme);
+  themeToggle?.addEventListener("click", toggleTheme);
 
-  tabLikert.addEventListener("click", ()=> setTab("likert"));
-  tabForced.addEventListener("click", ()=> setTab("forced"));
+  tabLikert?.addEventListener("click", ()=> setTab("likert"));
+  tabForced?.addEventListener("click", ()=> setTab("forced"));
 
-  startBtn.addEventListener("click", ()=>{
+  startBtn?.addEventListener("click", ()=>{
     state.meta.name = studentName.value || "";
     state.meta.grade = studentGrade.value || "";
     persist();
     showAssessment();
   });
 
-  resumeBtn.addEventListener("click", ()=>{
+  resumeBtn?.addEventListener("click", ()=>{
     if(!localStorage.getItem(STORAGE_KEY)){
       alert("No saved attempt found.");
       return;
     }
-    // ensure meta reflects current inputs if user typed them
     state.meta.name = studentName.value || state.meta.name || "";
     state.meta.grade = studentGrade.value || state.meta.grade || "";
     persist();
     showAssessment();
   });
 
-  resetBtn.addEventListener("click", ()=>{
+  resetBtn?.addEventListener("click", ()=>{
     if(confirm("Reset all answers on this device?")){
       resetState();
       clearSaved();
@@ -603,14 +604,14 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
     }
   });
 
-  saveBtn.addEventListener("click", ()=>{
+  saveBtn?.addEventListener("click", ()=>{
     state.meta.name = studentName.value || "";
     state.meta.grade = studentGrade.value || "";
     persist();
     alert("Saved.");
   });
 
-  submitBtn.addEventListener("click", ()=>{
+  submitBtn?.addEventListener("click", ()=>{
     state.meta.name = studentName.value || "";
     state.meta.grade = studentGrade.value || "";
     persist();
@@ -619,49 +620,12 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
     if(!v.ok) return;
 
     const { results, topSorted } = computeScores();
+    const topTwo = topSorted.slice(0,2);
 
-    // ---- Fill Print View ----
-   const now = new Date();
-   const metaParts = [];
-   if(state.meta.name) metaParts.push(`Student: ${state.meta.name}`);
-   if(state.meta.grade) metaParts.push(`Grade: ${state.meta.grade}`);
-   printMeta.textContent = metaParts.join(" • ") || "Student: ____________ • Grade: ____";
-   printDate.textContent = now.toLocaleDateString();
+    // IMPORTANT: show results first so print canvases are not in a hidden tree
+    showResults();
 
-   topValuesPrint.innerHTML = "";
-   topSorted.forEach(item=>{
-     const li = document.createElement("li");
-     li.innerHTML = `${escapeHtml(item.value)} — <strong>${item.score100}</strong>
-       <span class="badge">${band(item.score100)}</span>`;
-     topValuesPrint.appendChild(li);
-   });
-
-   summaryTextPrint.textContent = buildSummary(topSorted.slice(0,2));
-
-   // Scores table
-   const tbody = scoresTablePrint.querySelector("tbody");
-   tbody.innerHTML = "";
-   results
-     .slice()
-     .sort((a,b)=> b.score100 - a.score100)
-     .forEach(row=>{
-       const tr = document.createElement("tr");
-       tr.innerHTML = `
-         <td>${escapeHtml(row.value)}</td>
-         <td><strong>${row.score100}</strong></td>
-         <td>${band(row.score100)}</td>
-         <td>${escapeHtml(signalLine(row.value))}</td>
-       `;
-       tbody.appendChild(tr);
-     });
-
-   // Print chart (black/gray)
-   renderRadarPrint(results);
-
-     
-   const topTwo = topSorted.slice(0,2);
-
-    // Fill top values list
+    // Fill student UI
     topValues.innerHTML = "";
     topSorted.forEach(item=>{
       const li = document.createElement("li");
@@ -669,47 +633,49 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
         <span class="badge">${band(item.score100)}</span>`;
       topValues.appendChild(li);
     });
-
     summaryText.textContent = buildSummary(topTwo);
 
+    // Render charts + populate counselor print view
     renderRadar(results);
-    showResults();
+    populatePrintView(results, topSorted);
+    renderRadarPrint(results);
   });
 
-  backBtn.addEventListener("click", showAssessment);
+  backBtn?.addEventListener("click", showAssessment);
 
-  downloadJsonBtn.addEventListener("click", ()=>{
+  downloadJsonBtn?.addEventListener("click", ()=>{
     const { results } = computeScores();
     const payload = {
       title: "Forgotten Tracks – Core Values Assessment",
       version: "v1",
       timestamp: new Date().toISOString(),
-      student: {
-        name: state.meta.name || "",
-        grade: state.meta.grade || ""
-      },
+      student: { name: state.meta.name || "", grade: state.meta.grade || "" },
       answers: { likert: state.likert, forced: state.forced },
       scores: results
     };
     downloadJson(payload);
   });
 
-  downloadPngBtn.addEventListener("click", downloadChartPng);
+  downloadPngBtn?.addEventListener("click", downloadChartPng);
 
-  clearSavedBtn.addEventListener("click", ()=>{
+  clearSavedBtn?.addEventListener("click", ()=>{
     if(confirm("Clear saved attempt from this device?")){
       clearSaved();
       alert("Saved attempt cleared.");
     }
   });
 
- // ---------- PRINT BUTTON ----------
-printBtn.addEventListener("click", () => {
-  const { results, topSorted } = computeScores();
-  renderRadarPrint(results);
-  summaryTextPrint.textContent = buildSummary(topSorted.slice(0, 2));
-  window.print();
-});
-  
-})();
+  // Print counselor copy (requires printBtn in index.html)
+  if (printBtn) {
+    printBtn.addEventListener("click", () => {
+      const { results, topSorted } = computeScores();
 
+      // Ensure results are visible, content filled, and chart drawn before print
+      showResults();
+      populatePrintView(results, topSorted);
+      renderRadarPrint(results);
+
+      requestAnimationFrame(() => window.print());
+    });
+  }
+})();
