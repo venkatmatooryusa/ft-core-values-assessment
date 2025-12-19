@@ -354,6 +354,15 @@ select{appearance:auto}
     print-color-adjust: exact;
   }
 
+  #results, #printView{
+  overflow: hidden !important;
+  }
+
+  *{
+  box-sizing: border-box !important;
+  }
+
+  
   /* Print ONLY counselor copy */
   header,
   .intro,
@@ -389,8 +398,17 @@ select{appearance:auto}
     transform: scale(0.85);
     transform-origin: top left;
     width: 100%;
+    margin: 0 !important;
+    padding: 8px !important;
+    border: 1px solid #bbb !important;
+  }
+  #results, #printView{
+  overflow: hidden !important;
   }
 
+  *{
+    box-sizing: border-box !important;
+  }
   .print-header{ padding-bottom: 8px !important; margin-bottom: 8px !important; }
   .print-title{ font-size: 18px !important; }
   .pill{ font-size: 11px !important; padding: 3px 8px !important; }
