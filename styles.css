@@ -293,7 +293,8 @@ select{appearance:auto}
   border:1px solid var(--line);
   border-radius:14px;
   padding:12px;
-  background: rgba(0,0,0,.06);
+  background: var(--card);
+  backdrop-filter: none;
 }
 [data-theme="light"] .print-chart, [data-theme="light"] .print-summary{ background:#fbfcff; }
 
