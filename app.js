@@ -1,5 +1,5 @@
-// app.js
-/* Forgotten Tracks – Core Values Assessment
+/* app.js — Revised (Chrome print-safe)
+   Forgotten Tracks – Core Values Assessment
    Static, client-side only. No backend.
 */
 
@@ -119,6 +119,7 @@ const summaryText = el("summaryText");
 
 // Print view refs
 const printBtn = el("printBtn");
+const printView = el("printView");
 const printMeta = el("printMeta");
 const printDate = el("printDate");
 const topValuesPrint = el("topValuesPrint");
@@ -140,7 +141,7 @@ function toggleTheme(){
     const { results, topSorted } = computeScores();
     renderRadar(results);
     populatePrintView(results, topSorted);
-    renderRadarPrint(results);
+    renderRadarPrint(results); // screen preview
   }
 }
 
@@ -221,8 +222,8 @@ function buildSummary(topTwo){
 
 // Selected-state helper (no :has needed)
 function syncSelectedStyles(groupName){
-  const labels = document.querySelectorAll(`label.choice input[name="${groupName}"]`);
-  labels.forEach(inp=>{
+  const inputs = document.querySelectorAll(`input[name="${groupName}"]`);
+  inputs.forEach(inp=>{
     const lab = inp.closest("label.choice");
     if(!lab) return;
     lab.classList.toggle("selected", inp.checked);
@@ -464,12 +465,13 @@ function renderRadarPrint(scores, mode = "screen"){
   const isPrint = mode === "print";
   const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
 
-  const axis   = isPrint ? "rgba(0,0,0,0.30)" : (isLightTheme ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)");
-  const angle  = isPrint ? "rgba(0,0,0,0.22)" : (isLightTheme ? "rgba(0,0,0,0.30)" : "rgba(255,255,255,0.18)");
+  // Strong print contrast (Chrome-friendly)
+  const axis   = isPrint ? "rgba(0,0,0,0.55)" : (isLightTheme ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)");
+  const angle  = isPrint ? "rgba(0,0,0,0.40)" : (isLightTheme ? "rgba(0,0,0,0.30)" : "rgba(255,255,255,0.18)");
   const tick   = isPrint ? "#000000"          : (isLightTheme ? "#000000" : "rgba(255,255,255,0.85)");
   const label  = isPrint ? "#000000"          : (isLightTheme ? "#000000" : "rgba(255,255,255,0.92)");
-  const stroke = isPrint ? "#111111"          : (isLightTheme ? "#111111" : "rgba(255,255,255,0.92)");
-  const fill   = isPrint ? "rgba(0,0,0,0.12)" : (isLightTheme ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.12)");
+  const stroke = isPrint ? "#000000"          : (isLightTheme ? "#111111" : "rgba(255,255,255,0.92)");
+  const fill   = isPrint ? "rgba(0,0,0,0.18)" : (isLightTheme ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.12)");
 
   if(radarChartPrint) radarChartPrint.destroy();
 
@@ -479,25 +481,25 @@ function renderRadarPrint(scores, mode = "screen"){
       labels,
       datasets: [{
         data,
-        borderWidth: 3,
+        borderWidth: isPrint ? 4 : 3,
         backgroundColor: fill,
         borderColor: stroke,
         pointBackgroundColor: stroke,
         pointBorderColor: stroke,
-        pointRadius: 4
+        pointRadius: isPrint ? 5 : 4
       }]
     },
     options: {
       responsive: false,
-      // ✅ critical: no animation for printing
+      // ✅ CRITICAL: disable animation so Chrome print doesn't snapshot a blank canvas
       animation: false,
       plugins: { legend: { display:false } },
       scales: {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: axis, lineWidth: 1.3 },
-          angleLines: { color: angle, lineWidth: 1.1 },
+          grid: { color: axis, lineWidth: isPrint ? 1.8 : 1.3 },
+          angleLines: { color: angle, lineWidth: isPrint ? 1.5 : 1.1 },
           pointLabels: { color: label, font: { size: 12, weight: "700", lineHeight: 1.25 } },
           ticks: { color: tick, backdropColor: "transparent", stepSize: 20, font: { size: 11, weight: "600" } }
         }
@@ -505,7 +507,7 @@ function renderRadarPrint(scores, mode = "screen"){
     }
   });
 
-  // ✅ force a synchronous draw
+  // ✅ Force immediate draw
   radarChartPrint.resize();
   radarChartPrint.update("none");
 }
@@ -611,15 +613,11 @@ function setTab(which){
   if(which === "likert"){
     tabLikert.classList.add("active");
     tabForced.classList.remove("active");
-    tabLikert.setAttribute("aria-selected","true");
-    tabForced.setAttribute("aria-selected","false");
     likertContainer.classList.remove("hidden");
     forcedContainer.classList.add("hidden");
   }else{
     tabForced.classList.add("active");
     tabLikert.classList.remove("active");
-    tabForced.setAttribute("aria-selected","true");
-    tabLikert.setAttribute("aria-selected","false");
     forcedContainer.classList.remove("hidden");
     likertContainer.classList.add("hidden");
   }
@@ -713,7 +711,7 @@ function resetState(){
 
     renderRadar(results);
     populatePrintView(results, topSorted);
-    renderRadarPrint(results);
+    renderRadarPrint(results); // screen preview
   });
 
   backBtn?.addEventListener("click", showAssessment);
@@ -740,38 +738,32 @@ function resetState(){
     }
   });
 
+  // ✅ Chrome-safe print: temporarily show printView, render chart with mode="print" and no animation
   if (printBtn) {
-  printBtn.addEventListener("click", () => {
+    printBtn.addEventListener("click", () => {
+      const { results, topSorted } = computeScores();
+
+      showResults();
+      populatePrintView(results, topSorted);
+
+      if (printView) printView.style.display = "block"; // critical for Chrome sizing
+
+      renderRadarPrint(results, "print");
+
+      requestAnimationFrame(() => {
+        window.print();
+        if (printView) printView.style.display = "";
+      });
+    });
+  }
+
+  window.addEventListener("beforeprint", () => {
     const { results, topSorted } = computeScores();
 
     showResults();
     populatePrintView(results, topSorted);
 
-    // Ensure print view is not display:none at time of render (screen mode)
-    const pv = el("printView");
-    if (pv) pv.style.display = "block";
-
+    if (printView) printView.style.display = "block";
     renderRadarPrint(results, "print");
-
-    requestAnimationFrame(() => {
-      window.print();
-      // restore inline display override (optional)
-      if (pv) pv.style.display = "";
-    });
   });
-  }
-
-  window.addEventListener("beforeprint", () => {
-  const { results, topSorted } = computeScores();
-
-  showResults();
-  populatePrintView(results, topSorted);
-
-  const pv = el("printView");
-  if (pv) pv.style.display = "block";
-
-  renderRadarPrint(results, "print");
-  });
-
-   
 })();
