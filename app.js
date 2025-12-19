@@ -119,6 +119,14 @@ const clearSavedBtn = el("clearSavedBtn");
 const topValues = el("topValues");
 const summaryText = el("summaryText");
 
+const printBtn = document.getElementById("printBtn");
+const printMeta = document.getElementById("printMeta");
+const printDate = document.getElementById("printDate");
+const topValuesPrint = document.getElementById("topValuesPrint");
+const summaryTextPrint = document.getElementById("summaryTextPrint");
+const scoresTablePrint = document.getElementById("scoresTablePrint");
+
+
 function applyTheme(theme){
   state.theme = theme;
   document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
@@ -183,6 +191,19 @@ function renderLikert(){
     { v:5, label:"Strongly Agree" },
   ];
 
+function signalLine(value){
+  switch(value){
+    case "Clarity & Synthesis": return "Enjoys organizing complexity into clear understanding.";
+    case "Protection & Preservation": return "Motivated by safeguarding stability, safety, and continuity.";
+    case "Equity & Access": return "Driven to reduce barriers and expand fair opportunity.";
+    case "Utility & Efficiency": return "Prefers practical improvements that save time/resources.";
+    case "Creation & Innovation": return "Energized by originality, invention, and experimentation.";
+    case "Aesthetics & Experience": return "Values craft, design quality, and emotional resonance.";
+    default: return "";
+  }
+}
+   
+   
   LIKERT_QUESTIONS.forEach(q=>{
     const wrap = document.createElement("div");
     wrap.className = "question";
