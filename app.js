@@ -749,10 +749,13 @@ function resetState(){
     });
   }
 
-  window.addEventListener("beforeprint", () => {
-  const { results } = computeScores();
-  renderRadarPrint(results, "print"); // uses high-contrast black-on-white mode
-  });
+   window.addEventListener("beforeprint", () => {
+     const { results, topSorted } = computeScores();
+     showResults();
+     populatePrintView(results, topSorted);
+     renderRadarPrint(results, "print");
+   });
+
  
    
 })();
