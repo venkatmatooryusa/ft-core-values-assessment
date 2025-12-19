@@ -353,7 +353,21 @@ select{appearance:auto}
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+  
+  canvas{
+    display: block !important;
+    max-width: 100% !important;
+    height: auto !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 
+  #radarChartPrint{
+    width: 440px !important;
+    height: 440px !important;
+  }
+
+  
   #results, #printView{
   overflow: hidden !important;
   }
@@ -395,17 +409,12 @@ select{appearance:auto}
 
   /* Fit to one page */
   #printView{
-    transform: scale(0.85);
-    transform-origin: top left;
     width: 100%;
     margin: 0 !important;
     padding: 8px !important;
     border: 1px solid #bbb !important;
   }
-  #results, #printView{
-  overflow: hidden !important;
-  }
-
+  
   *{
     box-sizing: border-box !important;
   }
