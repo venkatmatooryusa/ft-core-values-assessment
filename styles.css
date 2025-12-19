@@ -342,14 +342,33 @@ select{appearance:auto}
 }
 .muted{ color:var(--muted); }
 
-/* ---------- PRINT RULES ---------- */
+/* ---------- PRINT RULES (ONE PAGE, LANDSCAPE, EXECUTIVE) ---------- */
 @media print{
+
+  @page { size: landscape; margin: 0.45in; }
+
   html, body{
     background:#fff !important;
     color:#000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  header, .intro, .tabs, .sticky, .actions, #about, #assessment, #downloadJsonBtn, #downloadPngBtn, #backBtn, #clearSavedBtn {
+  /* Print ONLY counselor copy */
+  header,
+  .intro,
+  .tabs,
+  .sticky,
+  .actions,
+  #about,
+  #assessment,
+  #downloadJsonBtn,
+  #downloadPngBtn,
+  #backBtn,
+  #clearSavedBtn,
+  #results > .section-head,
+  #results .results-grid,
+  .print-sep{
     display:none !important;
   }
 
@@ -360,7 +379,95 @@ select{appearance:auto}
     box-shadow:none !important;
     backdrop-filter:none !important;
     background:#fff !important;
+    border: 1px solid #bbb !important;
   }
 
-  @page { margin: 0.55in; }
+  body{ font-size: 11px !important; line-height: 1.22 !important; }
+
+  /* Fit to one page */
+  #printView{
+    transform: scale(0.90);
+    transform-origin: top left;
+    width: 111%;
+  }
+
+  .print-header{ padding-bottom: 8px !important; margin-bottom: 8px !important; }
+  .print-title{ font-size: 18px !important; }
+  .pill{ font-size: 11px !important; padding: 3px 8px !important; }
+
+  .print-grid{
+    grid-template-columns: 1.05fr .95fr !important;
+    gap: 10px !important;
+  }
+
+  .print-chart, .print-summary{ padding: 10px !important; border-radius: 10px !important; }
+
+  #radarChartPrint{
+    max-width: 440px !important;
+    max-height: 440px !important;
+  }
+
+  .notes-box{ height: 44px !important; }
+  .notes-box + .notes-box{ display:none !important; }
+
+  #printView, .print-grid, .print-chart, .print-summary{
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* EXECUTIVE table: hide original and show compact grid */
+  #scoresTablePrint{ display:none !important; }
+
+  #scoresTablePrintExec{
+    display:grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 8px !important;
+  }
+
+  .exec-col{
+    border: 1px solid #bbb;
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+
+  .exec-row{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:10px;
+    padding: 6px 0;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .exec-row:last-child{ border-bottom:none; }
+
+  .exec-left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+
+  .exec-value{
+    font-weight: 800;
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 340px;
+  }
+
+  .exec-signal{
+    font-size: 10px;
+    color: #333;
+    line-height: 1.15;
+  }
+
+  .exec-right{ text-align:right; white-space: nowrap; flex-shrink:0; }
+
+  .exec-score{ font-weight: 900; font-size: 12px; }
+  .exec-band{ font-size: 10px; color: #333; margin-top: 2px; }
+
+  .print-footer{
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+    font-size: 10.5px !important;
+    border-top: 1px solid #bbb !important;
+  }
 }
+
