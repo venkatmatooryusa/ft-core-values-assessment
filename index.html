@@ -1,1 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Forgotten Tracks – Core Values Assessment</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <div>
+        <h1>Forgotten Tracks</h1>
+        <p class="subtitle">Core Values Assessment (40 Questions)</p>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="themeToggle" class="btn btn-secondary" type="button" aria-label="Toggle theme">
+        Toggle theme
+      </button>
+      <a class="btn btn-ghost" href="#about">About</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card intro">
+      <h2>Instructions</h2>
+      <ul>
+        <li>Answer honestly. There are no right or wrong answers.</li>
+        <li>Likert questions: choose from <strong>Strongly Disagree</strong> to <strong>Strongly Agree</strong>.</li>
+        <li>Forced-choice questions: pick the option that feels <strong>more like you</strong>.</li>
+      </ul>
+
+      <div class="grid2">
+        <label class="field">
+          <span>Student name (optional)</span>
+          <input id="studentName" type="text" placeholder="e.g., Alex" autocomplete="name" />
+        </label>
+
+        <label class="field">
+          <span>Grade (optional)</span>
+          <select id="studentGrade">
+            <option value="">Select</option>
+            <option>9</option><option>10</option><option>11</option><option>12</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="btn btn-primary" type="button">Start assessment</button>
+        <button id="resumeBtn" class="btn btn-secondary" type="button">Resume saved attempt</button>
+        <button id="resetBtn" class="btn btn-ghost" type="button">Reset</button>
+      </div>
+
+      <p class="hint">
+        This runs fully in the browser (no server). If you refresh, your progress can be saved locally.
+      </p>
+    </section>
+
+    <section id="assessment" class="card hidden">
+      <div class="section-head">
+        <h2>Assessment</h2>
+        <div class="progress">
+          <span id="progressText">0 / 40 answered</span>
+          <div class="bar"><div id="progressBar" class="bar-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button id="tabLikert" class="tab active" type="button">Likert (24)</button>
+        <button id="tabForced" class="tab" type="button">Forced-choice (16)</button>
+      </div>
+
+      <div id="likertContainer"></div>
+      <div id="forcedContainer" class="hidden"></div>
+
+      <div class="actions sticky">
+        <button id="saveBtn" class="btn btn-secondary" type="button">Save</button>
+        <button id="submitBtn" class="btn btn-primary" type="button">Generate results</button>
+      </div>
+
+      <p id="validationMsg" class="validation hidden"></p>
+    </section>
+
+    <section id="results" class="card hidden">
+      <div class="section-head">
+        <h2>Results</h2>
+        <div class="actions">
+          <button id="backBtn" class="btn btn-secondary" type="button">Back to questions</button>
+          <button id="downloadJsonBtn" class="btn btn-secondary" type="button">Download JSON</button>
+          <button id="downloadPngBtn" class="btn btn-secondary" type="button">Download Chart PNG</button>
+          <button id="clearSavedBtn" class="btn btn-ghost" type="button">Clear saved attempt</button>
+        </div>
+      </div>
+
+      <div class="grid2 results-grid">
+        <div class="panel">
+          <h3>Radar chart</h3>
+          <canvas id="radarChart" width="420" height="420" aria-label="Radar chart"></canvas>
+          <p class="hint">Scores shown on a 0–100 scale.</p>
+        </div>
+
+        <div class="panel">
+          <h3>Top values</h3>
+          <ol id="topValues" class="top-list"></ol>
+
+          <div class="bands">
+            <h4>Interpretation bands</h4>
+            <ul>
+              <li><strong>80–100:</strong> Core Driver</li>
+              <li><strong>60–79:</strong> Strong Preference</li>
+              <li><strong>40–59:</strong> Supporting Value</li>
+              <li><strong>&lt; 40:</strong> Low Pull (right now)</li>
+            </ul>
+          </div>
+
+          <div class="summary">
+            <h4>Student summary</h4>
+            <p id="summaryText"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="card">
+      <h2>About the six core values</h2>
+      <div class="value-grid">
+        <div class="value"><h4>Clarity &amp; Synthesis</h4><p>Distilling complexity into clear, actionable understanding.</p></div>
+        <div class="value"><h4>Protection &amp; Preservation</h4><p>Defending vulnerable systems, communities, or assets over time.</p></div>
+        <div class="value"><h4>Equity &amp; Access</h4><p>Removing barriers so opportunities and knowledge are fairly shared.</p></div>
+        <div class="value"><h4>Utility &amp; Efficiency</h4><p>Designing practical systems that work better, faster, and at scale.</p></div>
+        <div class="value"><h4>Creation &amp; Innovation</h4><p>Inventing new ideas and building original solutions.</p></div>
+        <div class="value"><h4>Aesthetics &amp; Experience</h4><p>Shaping how things look, feel, and resonate emotionally.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Chart.js (Radar chart) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
 
