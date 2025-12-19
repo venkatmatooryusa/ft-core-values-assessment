@@ -498,3 +498,25 @@ select{appearance:auto}
   }
 }
 
+/* ---- PRINT-SAFE: do NOT scale with transform (breaks canvas) ---- */
+#printView{
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px !important;
+  border: 1px solid #bbb !important;
+}
+
+/* Ensure canvases print */
+canvas{
+  display:block !important;
+  max-width:100% !important;
+  height:auto !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Fit the radar chart neatly on one landscape page */
+#radarChartPrint{
+  width: 440px !important;
+  height: 440px !important;
+}
