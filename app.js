@@ -136,6 +136,15 @@ function applyTheme(theme){
 function toggleTheme(){
   applyTheme(state.theme === "light" ? "dark" : "light");
   persist();
+
+  // If results are visible, re-render charts with correct theme colors
+  const resultsVisible = resultsSection && !resultsSection.classList.contains("hidden");
+  if (resultsVisible) {
+    const { results, topSorted } = computeScores();
+    renderRadar(results);
+    populatePrintView(results, topSorted);
+    renderRadarPrint(results);
+  }
 }
 
 function persist(){
@@ -441,6 +450,18 @@ function renderRadarPrint(scores){
   const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
 
+  const isLight = document.documentElement.getAttribute("data-theme") === "light";
+
+  // Screen theme-aware colors:
+  // - Light theme: black/gray
+  // - Dark theme: white/gray (so it doesn't disappear)
+  const axis = isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)";
+  const angle = isLight ? "rgba(0,0,0,0.30)" : "rgba(255,255,255,0.18)";
+  const tick = isLight ? "#000000" : "rgba(255,255,255,0.85)";
+  const label = isLight ? "#000000" : "rgba(255,255,255,0.92)";
+  const stroke = isLight ? "#111111" : "rgba(255,255,255,0.92)";
+  const fill = isLight ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.12)";
+
   if(radarChartPrint) radarChartPrint.destroy();
 
   radarChartPrint = new Chart(canvas, {
@@ -449,54 +470,33 @@ function renderRadarPrint(scores){
       labels,
       datasets: [{
         data,
-        borderWidth: 3,                         // thicker outline
-        backgroundColor: "rgba(0,0,0,0.15)",    // stronger fill for print
-        borderColor: "#111111",                  // near-black outline
-        pointBackgroundColor: "#111111",
-        pointBorderColor: "#111111",
-        pointRadius: 4                           // slightly larger points
+        borderWidth: 3,
+        backgroundColor: fill,
+        borderColor: stroke,
+        pointBackgroundColor: stroke,
+        pointBorderColor: stroke,
+        pointRadius: 4
       }]
     },
     options: {
       responsive: false,
-      plugins: {
-        legend: { display:false }
-      },
+      plugins: { legend: { display:false } },
       scales: {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-
-          // Darker grid for print clarity
-          grid: {
-            color: "rgba(0,0,0,0.45)",
-            lineWidth: 1.25
-          },
-          angleLines: {
-            color: "rgba(0,0,0,0.35)",
-            lineWidth: 1.25
-          },
-
-          // Axis labels
+          grid: { color: axis, lineWidth: 1.5 },
+          angleLines: { color: angle, lineWidth: 1.25 },
           pointLabels: {
-            color: "#000000",
-            font: {
-              size: 12,
-              weight: "700",
-              lineHeight: 1.25
-            }
+            color: label,
+            font: { size: 12, weight: "700", lineHeight: 1.25 }
           },
-
-          // Tick labels
           ticks: {
-            color: "#000000",
+            color: tick,
             backdropColor: "transparent",
             stepSize: 20,
             showLabelBackdrop: false,
-            font: {
-              size: 11,
-              weight: "600"
-            }
+            font: { size: 11, weight: "600" }
           }
         }
       }
