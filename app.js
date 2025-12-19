@@ -217,7 +217,7 @@ function signalLine(value){
 function buildSummary(topTwo){
   const [a,b] = topTwo;
   const name = (state.meta.name || "You").trim();
-  return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers—especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
+  return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers — especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
 }
 
 // Selected-state helper (no :has needed)
