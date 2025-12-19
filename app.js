@@ -1,3 +1,4 @@
+// app.js
 /* Forgotten Tracks – Core Values Assessment
    Static, client-side only. No backend.
 */
@@ -13,37 +14,31 @@ const FT_VALUES = [
 
 // --- Likert questions (24): 4 per value, in order
 const LIKERT_QUESTIONS = [
-  // Clarity & Synthesis (1–4)
   { id: 1, value: FT_VALUES[0], text: "I enjoy turning confusing information into something clear and understandable." },
   { id: 2, value: FT_VALUES[0], text: "I feel satisfied when I connect different ideas into one explanation." },
   { id: 3, value: FT_VALUES[0], text: "I like explaining complex topics in simple ways." },
   { id: 4, value: FT_VALUES[0], text: "I naturally organize or summarize information for others." },
 
-  // Protection & Preservation (5–8)
   { id: 5, value: FT_VALUES[1], text: "I feel responsible for protecting people, systems, or environments from harm." },
   { id: 6, value: FT_VALUES[1], text: "I think carefully about long-term consequences, not just short-term results." },
   { id: 7, value: FT_VALUES[1], text: "It bothers me when something important is neglected or damaged." },
   { id: 8, value: FT_VALUES[1], text: "I prefer roles where stability and safety matter." },
 
-  // Equity & Access (9–12)
   { id: 9, value: FT_VALUES[2], text: "I notice when systems or rules treat people unfairly." },
   { id: 10, value: FT_VALUES[2], text: "I care about making sure everyone has a fair chance to succeed." },
   { id: 11, value: FT_VALUES[2], text: "I feel motivated to stand up for people who are excluded." },
   { id: 12, value: FT_VALUES[2], text: "I believe opportunities and knowledge should be widely accessible." },
 
-  // Utility & Efficiency (13–16)
   { id: 13, value: FT_VALUES[3], text: "I enjoy improving how things work." },
   { id: 14, value: FT_VALUES[3], text: "I quickly notice waste or inefficiency." },
   { id: 15, value: FT_VALUES[3], text: "I prefer practical solutions that can be used by many people." },
   { id: 16, value: FT_VALUES[3], text: "I like building systems that save time, effort, or resources." },
 
-  // Creation & Innovation (17–20)
   { id: 17, value: FT_VALUES[4], text: "I enjoy creating something new rather than improving something existing." },
   { id: 18, value: FT_VALUES[4], text: "I like experimenting with ideas, even if they might fail." },
   { id: 19, value: FT_VALUES[4], text: "I feel energized when I invent or design new solutions." },
   { id: 20, value: FT_VALUES[4], text: "I am drawn to projects where I can try something original." },
 
-  // Aesthetics & Experience (21–24)
   { id: 21, value: FT_VALUES[5], text: "I care deeply about how things look, feel, or sound." },
   { id: 22, value: FT_VALUES[5], text: "I notice design details that others often miss." },
   { id: 23, value: FT_VALUES[5], text: "I enjoy creating experiences that make people feel something." },
@@ -73,7 +68,10 @@ const FORCED_QUESTIONS = [
 // Scoring constants
 const LIKERT_WEIGHT = 1.5;
 const FORCED_WEIGHT = 1.0;
-const LIKERT_MAX_PER_VALUE = 20 * LIKERT_WEIGHT;
+const LIKERT_QS_PER_VALUE = 4;
+const LIKERT_SCALE_MAX = 5;
+const LIKERT_RAW_MAX_PER_VALUE = LIKERT_QS_PER_VALUE * LIKERT_SCALE_MAX; // 20
+const LIKERT_MAX_PER_VALUE = LIKERT_RAW_MAX_PER_VALUE * LIKERT_WEIGHT;
 
 // Local storage key
 const STORAGE_KEY = "ft_core_values_assessment_v1";
@@ -119,8 +117,8 @@ const clearSavedBtn = el("clearSavedBtn");
 const topValues = el("topValues");
 const summaryText = el("summaryText");
 
-// Print view refs (IMPORTANT: index.html must contain these IDs)
-const printBtn = el("printBtn"); // add this button in index.html results actions
+// Print view refs
+const printBtn = el("printBtn");
 const printMeta = el("printMeta");
 const printDate = el("printDate");
 const topValuesPrint = el("topValuesPrint");
@@ -137,7 +135,6 @@ function toggleTheme(){
   applyTheme(state.theme === "light" ? "dark" : "light");
   persist();
 
-  // If results are visible, re-render charts with correct theme colors
   const resultsVisible = resultsSection && !resultsSection.classList.contains("hidden");
   if (resultsVisible) {
     const { results, topSorted } = computeScores();
@@ -222,6 +219,16 @@ function buildSummary(topTwo){
   return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers—especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
 }
 
+// Selected-state helper (no :has needed)
+function syncSelectedStyles(groupName){
+  const labels = document.querySelectorAll(`label.choice input[name="${groupName}"]`);
+  labels.forEach(inp=>{
+    const lab = inp.closest("label.choice");
+    if(!lab) return;
+    lab.classList.toggle("selected", inp.checked);
+  });
+}
+
 // ----------------- rendering -----------------
 function renderLikert(){
   likertContainer.innerHTML = "";
@@ -241,10 +248,10 @@ function renderLikert(){
       <div class="qhead">
         <div>
           <div class="qnum">Q${q.id} • ${escapeHtml(q.value)}</div>
-          <div class="qtext">${escapeHtml(q.text)}</div>
+          <div class="qtext" id="qtext_${q.id}">${escapeHtml(q.text)}</div>
         </div>
       </div>
-      <div class="choices" role="radiogroup" aria-label="Likert choices"></div>
+      <div class="choices" role="radiogroup" aria-labelledby="qtext_${q.id}"></div>
     `;
 
     const choices = wrap.querySelector(".choices");
@@ -266,12 +273,14 @@ function renderLikert(){
         state.likert[q.id] = Number(input.value);
         persist();
         updateProgress();
+        syncSelectedStyles(`likert_${q.id}`);
       });
 
       choices.appendChild(choice);
     });
 
     likertContainer.appendChild(wrap);
+    syncSelectedStyles(`likert_${q.id}`);
   });
 }
 
@@ -286,14 +295,14 @@ function renderForced(){
       <div class="qhead">
         <div>
           <div class="qnum">Q${q.id}</div>
-          <div class="qtext">Choose the option that feels more like you.</div>
+          <div class="qtext" id="qtext_${q.id}">Choose the option that feels more like you.</div>
           <div class="hint" style="margin-top:6px;">
             A → <strong>${escapeHtml(q.a.value)}</strong> &nbsp;&nbsp;•&nbsp;&nbsp;
             B → <strong>${escapeHtml(q.b.value)}</strong>
           </div>
         </div>
       </div>
-      <div class="choices" role="radiogroup" aria-label="Forced-choice options"></div>
+      <div class="choices" role="radiogroup" aria-labelledby="qtext_${q.id}"></div>
     `;
 
     const choices = wrap.querySelector(".choices");
@@ -320,12 +329,14 @@ function renderForced(){
         state.forced[q.id] = opt.key;
         persist();
         updateProgress();
+        syncSelectedStyles(`forced_${q.id}`);
       });
 
       choices.appendChild(choice);
     });
 
     forcedContainer.appendChild(wrap);
+    syncSelectedStyles(`forced_${q.id}`);
   });
 }
 
@@ -449,11 +460,7 @@ function renderRadarPrint(scores, mode = "screen"){
 
   const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
-
   const isPrint = mode === "print";
-
-  // ✅ FOR PRINT: always black/gray (because paper/background is white)
-  // ✅ FOR SCREEN: keep your theme-aware behavior
   const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
 
   const axis   = isPrint ? "rgba(0,0,0,0.30)" : (isLightTheme ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)");
@@ -488,17 +495,8 @@ function renderRadarPrint(scores, mode = "screen"){
           suggestedMax: 100,
           grid: { color: axis, lineWidth: 1.3 },
           angleLines: { color: angle, lineWidth: 1.1 },
-          pointLabels: {
-            color: label,
-            font: { size: 12, weight: "700", lineHeight: 1.25 }
-          },
-          ticks: {
-            color: tick,
-            backdropColor: "transparent",
-            stepSize: 20,
-            showLabelBackdrop: false,
-            font: { size: 11, weight: "600" }
-          }
+          pointLabels: { color: label, font: { size: 12, weight: "700", lineHeight: 1.25 } },
+          ticks: { color: tick, backdropColor: "transparent", stepSize: 20, font: { size: 11, weight: "600" } }
         }
       }
     }
@@ -542,8 +540,8 @@ function populatePrintView(results, topSorted){
       `;
       tbody.appendChild(tr);
     });
-// NEW: build the executive 2-column print version
-renderExecutiveScoresGrid(results);
+
+  renderExecutiveScoresGrid(results);
 }
 
 function renderExecutiveScoresGrid(results){
@@ -551,7 +549,6 @@ function renderExecutiveScoresGrid(results){
   if(!host) return;
 
   const sorted = results.slice().sort((a,b)=> b.score100 - a.score100);
-
   const colA = sorted.slice(0,3);
   const colB = sorted.slice(3,6);
 
@@ -607,11 +604,15 @@ function setTab(which){
   if(which === "likert"){
     tabLikert.classList.add("active");
     tabForced.classList.remove("active");
+    tabLikert.setAttribute("aria-selected","true");
+    tabForced.setAttribute("aria-selected","false");
     likertContainer.classList.remove("hidden");
     forcedContainer.classList.add("hidden");
   }else{
     tabForced.classList.add("active");
     tabLikert.classList.remove("active");
+    tabForced.setAttribute("aria-selected","true");
+    tabLikert.setAttribute("aria-selected","false");
     forcedContainer.classList.remove("hidden");
     likertContainer.classList.add("hidden");
   }
@@ -692,10 +693,8 @@ function resetState(){
     const { results, topSorted } = computeScores();
     const topTwo = topSorted.slice(0,2);
 
-    // IMPORTANT: show results first so print canvases are not in a hidden tree
     showResults();
 
-    // Fill student UI
     topValues.innerHTML = "";
     topSorted.forEach(item=>{
       const li = document.createElement("li");
@@ -705,7 +704,6 @@ function resetState(){
     });
     summaryText.textContent = buildSummary(topTwo);
 
-    // Render charts + populate counselor print view
     renderRadar(results);
     populatePrintView(results, topSorted);
     renderRadarPrint(results);
@@ -735,27 +733,20 @@ function resetState(){
     }
   });
 
-  // Print counselor copy (requires printBtn in index.html)
   if (printBtn) {
     printBtn.addEventListener("click", () => {
       const { results, topSorted } = computeScores();
-
-      // Ensure results are visible, content filled, and chart drawn before print
       showResults();
       populatePrintView(results, topSorted);
-      renderRadarPrint(results);
-
+      renderRadarPrint(results, "print");
       requestAnimationFrame(() => window.print());
     });
   }
 
-   window.addEventListener("beforeprint", () => {
-     const { results, topSorted } = computeScores();
-     showResults();
-     populatePrintView(results, topSorted);
-     renderRadarPrint(results, "print");
-   });
-
- 
-   
+  window.addEventListener("beforeprint", () => {
+    const { results, topSorted } = computeScores();
+    showResults();
+    populatePrintView(results, topSorted);
+    renderRadarPrint(results, "print");
+  });
 })();
