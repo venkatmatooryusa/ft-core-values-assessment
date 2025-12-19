@@ -360,7 +360,15 @@ function buildSummary(topTwo){
 function renderRadar(scores){
   const ctx = document.getElementById("radarChart");
 
-  const labels = scores.map(s=>s.value);
+  const labels = scores.map(s =>
+  s.value.includes(" & ")
+    ? s.value.split(" & ").map((part, i, arr) =>
+        i < arr.length - 1 ? part + " &" : part
+      )
+    : [s.value]
+   );
+
+   
   const data = scores.map(s=>s.score100);
 
   const isLight = document.documentElement.getAttribute("data-theme") === "light";
@@ -404,7 +412,7 @@ function renderRadar(scores){
           angleLines: { color: grid },
           pointLabels: {
             color: label,
-            font: { size: 12, weight: "600" }
+            font: { size: 11, weight: "600", lineHeight: 1.2 }
           },
           ticks: {
             color: ticks,
