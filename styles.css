@@ -239,3 +239,114 @@ select{appearance:auto}
 .value h4{margin:0 0 6px}
 .value p{margin:0; color:var(--muted); font-size:13px}
 
+.print-sep{ margin:18px 0; border:none; border-top:1px solid var(--line); }
+
+.print{ margin-top:14px; }
+.card-print{
+  background: var(--card);
+}
+
+.print-header{
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  align-items:flex-start;
+  flex-wrap:wrap;
+  border-bottom:1px solid var(--line);
+  padding-bottom:12px;
+  margin-bottom:12px;
+}
+.print-title{ margin:0; font-size:20px; }
+.print-meta{ color:var(--muted); font-size:12px; margin-top:6px; }
+.print-badges{ display:flex; gap:8px; flex-wrap:wrap; }
+.pill{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.print-grid{
+  display:grid;
+  grid-template-columns: 1.1fr .9fr;
+  gap:14px;
+}
+@media (max-width: 860px){
+  .print-grid{ grid-template-columns:1fr; }
+}
+
+.print-chart, .print-summary{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background: rgba(0,0,0,.06);
+}
+[data-theme="light"] .print-chart, [data-theme="light"] .print-summary{ background:#fbfcff; }
+
+.print-small{ margin-top:8px; color:var(--muted); font-size:12px; }
+.print-paragraph{ margin:0; color:var(--text); line-height:1.5; }
+
+.notes-box{
+  height:56px;
+  border:1px dashed var(--line);
+  border-radius:12px;
+  margin-top:8px;
+  background: transparent;
+}
+
+.mt{ margin-top:16px; }
+
+.print-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:10px;
+  font-size:13px;
+}
+.print-table th, .print-table td{
+  border:1px solid var(--line);
+  padding:10px;
+  text-align:left;
+  vertical-align:top;
+}
+.print-table th{ background: rgba(34,211,238,.08); }
+
+.print-footer{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  font-size:12px;
+}
+.muted{ color:var(--muted); }
+
+/* ---------- PRINT RULES ---------- */
+@media print{
+  /* Force a clean white page regardless of theme */
+  html, body{
+    background:#fff !important;
+    color:#000 !important;
+  }
+
+  /* Hide non-print UI */
+  header, .intro, .tabs, .sticky, .actions, #about, #assessment, #downloadJsonBtn, #downloadPngBtn, #backBtn, #clearSavedBtn {
+    display:none !important;
+  }
+
+  /* Show only results + print view */
+  #results{ display:block !important; border:none !important; box-shadow:none !important; }
+  #printView{ display:block !important; }
+
+  /* Remove shadows/filters for crisp printing */
+  .card, .panel, .print-chart, .print-summary{
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+    background:#fff !important;
+  }
+
+  /* Page setup-ish */
+  @page { margin: 0.55in; }
+}
