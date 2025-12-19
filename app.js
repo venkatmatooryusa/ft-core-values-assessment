@@ -619,7 +619,47 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
     if(!v.ok) return;
 
     const { results, topSorted } = computeScores();
-    const topTwo = topSorted.slice(0,2);
+
+    // ---- Fill Print View ----
+   const now = new Date();
+   const metaParts = [];
+   if(state.meta.name) metaParts.push(`Student: ${state.meta.name}`);
+   if(state.meta.grade) metaParts.push(`Grade: ${state.meta.grade}`);
+   printMeta.textContent = metaParts.join(" • ") || "Student: ____________ • Grade: ____";
+   printDate.textContent = now.toLocaleDateString();
+
+   topValuesPrint.innerHTML = "";
+   topSorted.forEach(item=>{
+     const li = document.createElement("li");
+     li.innerHTML = `${escapeHtml(item.value)} — <strong>${item.score100}</strong>
+       <span class="badge">${band(item.score100)}</span>`;
+     topValuesPrint.appendChild(li);
+   });
+
+   summaryTextPrint.textContent = buildSummary(topSorted.slice(0,2));
+
+   // Scores table
+   const tbody = scoresTablePrint.querySelector("tbody");
+   tbody.innerHTML = "";
+   results
+     .slice()
+     .sort((a,b)=> b.score100 - a.score100)
+     .forEach(row=>{
+       const tr = document.createElement("tr");
+       tr.innerHTML = `
+         <td>${escapeHtml(row.value)}</td>
+         <td><strong>${row.score100}</strong></td>
+         <td>${band(row.score100)}</td>
+         <td>${escapeHtml(signalLine(row.value))}</td>
+       `;
+       tbody.appendChild(tr);
+     });
+
+   // Print chart (black/gray)
+   renderRadarPrint(results);
+
+     
+   const topTwo = topSorted.slice(0,2);
 
     // Fill top values list
     topValues.innerHTML = "";
@@ -662,5 +702,14 @@ function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
       alert("Saved attempt cleared.");
     }
   });
+
+ // ---------- PRINT BUTTON ----------
+printBtn.addEventListener("click", () => {
+  const { results, topSorted } = computeScores();
+  renderRadarPrint(results);
+  summaryTextPrint.textContent = buildSummary(topSorted.slice(0, 2));
+  window.print();
+});
+  
 })();
 
