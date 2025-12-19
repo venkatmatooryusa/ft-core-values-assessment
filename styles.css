@@ -386,9 +386,9 @@ select{appearance:auto}
 
   /* Fit to one page */
   #printView{
-    transform: scale(0.90);
+    transform: scale(0.88);
     transform-origin: top left;
-    width: 111%;
+    width: 100%;
   }
 
   .print-header{ padding-bottom: 8px !important; margin-bottom: 8px !important; }
