@@ -443,24 +443,25 @@ function renderRadar(scores){
   });
 }
 
-function renderRadarPrint(scores){
+function renderRadarPrint(scores, mode = "screen"){
   const canvas = el("radarChartPrint");
   if(!canvas) return;
 
   const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
 
-  const isLight = document.documentElement.getAttribute("data-theme") === "light";
+  const isPrint = mode === "print";
 
-  // Screen theme-aware colors:
-  // - Light theme: black/gray
-  // - Dark theme: white/gray (so it doesn't disappear)
-  const axis = isLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)";
-  const angle = isLight ? "rgba(0,0,0,0.30)" : "rgba(255,255,255,0.18)";
-  const tick = isLight ? "#000000" : "rgba(255,255,255,0.85)";
-  const label = isLight ? "#000000" : "rgba(255,255,255,0.92)";
-  const stroke = isLight ? "#111111" : "rgba(255,255,255,0.92)";
-  const fill = isLight ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.12)";
+  // ✅ FOR PRINT: always black/gray (because paper/background is white)
+  // ✅ FOR SCREEN: keep your theme-aware behavior
+  const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
+
+  const axis   = isPrint ? "rgba(0,0,0,0.30)" : (isLightTheme ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)");
+  const angle  = isPrint ? "rgba(0,0,0,0.22)" : (isLightTheme ? "rgba(0,0,0,0.30)" : "rgba(255,255,255,0.18)");
+  const tick   = isPrint ? "#000000"          : (isLightTheme ? "#000000" : "rgba(255,255,255,0.85)");
+  const label  = isPrint ? "#000000"          : (isLightTheme ? "#000000" : "rgba(255,255,255,0.92)");
+  const stroke = isPrint ? "#111111"          : (isLightTheme ? "#111111" : "rgba(255,255,255,0.92)");
+  const fill   = isPrint ? "rgba(0,0,0,0.12)" : (isLightTheme ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.12)");
 
   if(radarChartPrint) radarChartPrint.destroy();
 
@@ -485,8 +486,8 @@ function renderRadarPrint(scores){
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: axis, lineWidth: 1.5 },
-          angleLines: { color: angle, lineWidth: 1.25 },
+          grid: { color: axis, lineWidth: 1.3 },
+          angleLines: { color: angle, lineWidth: 1.1 },
           pointLabels: {
             color: label,
             font: { size: 12, weight: "700", lineHeight: 1.25 }
