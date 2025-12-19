@@ -446,6 +446,66 @@ function renderRadar(scores){
   });
 }
 
+let radarChartPrint = null;
+
+function renderRadarPrint(scores){
+  const ctx = document.getElementById("radarChartPrint");
+
+  // Option B wrapping: split on " & "
+  const labels = scores.map(s =>
+    s.value.includes(" & ")
+      ? s.value.split(" & ").map((part, i, arr) =>
+          i < arr.length - 1 ? part + " &" : part
+        )
+      : [s.value]
+  );
+
+  const data = scores.map(s=>s.score100);
+
+  // Print chart should always be black/gray friendly
+  if(radarChartPrint) radarChartPrint.destroy();
+
+  radarChartPrint = new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Core Values (0–100)",
+        data,
+        borderWidth: 2,
+        backgroundColor: "rgba(0,0,0,0.06)",
+        borderColor: "rgba(0,0,0,0.85)",
+        pointBackgroundColor: "rgba(0,0,0,0.85)",
+        pointBorderColor: "rgba(0,0,0,0.85)",
+        pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: false,
+      plugins: { legend: { display:false } },
+      scales: {
+        r: {
+          suggestedMin: 0,
+          suggestedMax: 100,
+          grid: { color: "rgba(0,0,0,0.15)" },
+          angleLines: { color: "rgba(0,0,0,0.15)" },
+          pointLabels: {
+            color: "#000",
+            font: { size: 11, weight: "600", lineHeight: 1.2 }
+          },
+          ticks: {
+            color: "#000",
+            backdropColor: "transparent",
+            stepSize: 20
+          }
+        }
+      }
+    }
+  });
+}
+
+
+
 function downloadJson(payload){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
