@@ -350,3 +350,8 @@ select{appearance:auto}
   /* Page setup-ish */
   @page { margin: 0.55in; }
 }
+/* Counselor print chart emphasis */
+.print-chart{
+  background: #ffffff;
+  border: 2px solid #000000;
+}
