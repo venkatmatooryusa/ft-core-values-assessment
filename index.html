@@ -123,6 +123,61 @@
           </div>
         </div>
       </div>
+
+    <hr class="print-sep" />
+
+  <section id="printView" class="print card-print">
+    <div class="print-header">
+      <div>
+        <h2 class="print-title">Forgotten Tracks – Core Values Results</h2>
+        <div class="print-meta" id="printMeta"></div>
+      </div>
+      <div class="print-badges">
+        <span class="pill">Counselor Copy</span>
+        <span class="pill" id="printDate"></span>
+      </div>
+    </div>
+
+    <div class="print-grid">
+      <div class="print-chart">
+        <h3>Radar chart (0–100)</h3>
+        <canvas id="radarChartPrint" width="520" height="520"></canvas>
+        <div class="print-small">Bands: 80–100 Core Driver • 60–79 Strong • 40–59 Supporting • &lt;40 Low Pull</div>
+      </div>
+
+      <div class="print-summary">
+        <h3>Top values</h3>
+        <ol id="topValuesPrint" class="top-list"></ol>
+
+        <h3>Student summary</h3>
+        <p id="summaryTextPrint" class="print-paragraph"></p>
+
+        <h3>Counselor notes</h3>
+        <div class="notes-box"></div>
+        <div class="notes-box"></div>
+      </div>
+    </div>
+
+    <h3 class="mt">Scores table</h3>
+    <table class="print-table" id="scoresTablePrint">
+      <thead>
+        <tr>
+          <th>Core Value</th>
+          <th>Score (0–100)</th>
+          <th>Band</th>
+          <th>What it signals (short)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="print-footer">
+      <div><strong>Reminder:</strong> This reflects what energizes the student, not ability or performance.</div>
+      <div class="muted">Forgotten Tracks • Core Values Assessment</div>
+    </div>
+</section>
+
+      
     </section>
 
     <section id="about" class="card">
