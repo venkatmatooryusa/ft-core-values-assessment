@@ -1,6 +1,7 @@
-/* app.js — Revised (Chrome print-safe)
-   Forgotten Tracks – Core Values Assessment
+/* Forgotten Tracks – Core Values Assessment (LIGHT MODE ONLY)
    Static, client-side only. No backend.
+   - Theme toggle removed
+   - Print radar made Chrome-safe (no animation + forced draw)
 */
 
 const FT_VALUES = [
@@ -14,31 +15,37 @@ const FT_VALUES = [
 
 // --- Likert questions (24): 4 per value, in order
 const LIKERT_QUESTIONS = [
+  // Clarity & Synthesis (1–4)
   { id: 1, value: FT_VALUES[0], text: "I enjoy turning confusing information into something clear and understandable." },
   { id: 2, value: FT_VALUES[0], text: "I feel satisfied when I connect different ideas into one explanation." },
   { id: 3, value: FT_VALUES[0], text: "I like explaining complex topics in simple ways." },
   { id: 4, value: FT_VALUES[0], text: "I naturally organize or summarize information for others." },
 
+  // Protection & Preservation (5–8)
   { id: 5, value: FT_VALUES[1], text: "I feel responsible for protecting people, systems, or environments from harm." },
   { id: 6, value: FT_VALUES[1], text: "I think carefully about long-term consequences, not just short-term results." },
   { id: 7, value: FT_VALUES[1], text: "It bothers me when something important is neglected or damaged." },
   { id: 8, value: FT_VALUES[1], text: "I prefer roles where stability and safety matter." },
 
+  // Equity & Access (9–12)
   { id: 9, value: FT_VALUES[2], text: "I notice when systems or rules treat people unfairly." },
   { id: 10, value: FT_VALUES[2], text: "I care about making sure everyone has a fair chance to succeed." },
   { id: 11, value: FT_VALUES[2], text: "I feel motivated to stand up for people who are excluded." },
   { id: 12, value: FT_VALUES[2], text: "I believe opportunities and knowledge should be widely accessible." },
 
+  // Utility & Efficiency (13–16)
   { id: 13, value: FT_VALUES[3], text: "I enjoy improving how things work." },
   { id: 14, value: FT_VALUES[3], text: "I quickly notice waste or inefficiency." },
   { id: 15, value: FT_VALUES[3], text: "I prefer practical solutions that can be used by many people." },
   { id: 16, value: FT_VALUES[3], text: "I like building systems that save time, effort, or resources." },
 
+  // Creation & Innovation (17–20)
   { id: 17, value: FT_VALUES[4], text: "I enjoy creating something new rather than improving something existing." },
   { id: 18, value: FT_VALUES[4], text: "I like experimenting with ideas, even if they might fail." },
   { id: 19, value: FT_VALUES[4], text: "I feel energized when I invent or design new solutions." },
   { id: 20, value: FT_VALUES[4], text: "I am drawn to projects where I can try something original." },
 
+  // Aesthetics & Experience (21–24)
   { id: 21, value: FT_VALUES[5], text: "I care deeply about how things look, feel, or sound." },
   { id: 22, value: FT_VALUES[5], text: "I notice design details that others often miss." },
   { id: 23, value: FT_VALUES[5], text: "I enjoy creating experiences that make people feel something." },
@@ -68,10 +75,7 @@ const FORCED_QUESTIONS = [
 // Scoring constants
 const LIKERT_WEIGHT = 1.5;
 const FORCED_WEIGHT = 1.0;
-const LIKERT_QS_PER_VALUE = 4;
-const LIKERT_SCALE_MAX = 5;
-const LIKERT_RAW_MAX_PER_VALUE = LIKERT_QS_PER_VALUE * LIKERT_SCALE_MAX; // 20
-const LIKERT_MAX_PER_VALUE = LIKERT_RAW_MAX_PER_VALUE * LIKERT_WEIGHT;
+const LIKERT_MAX_PER_VALUE = 20 * LIKERT_WEIGHT;
 
 // Local storage key
 const STORAGE_KEY = "ft_core_values_assessment_v1";
@@ -80,7 +84,6 @@ let state = {
   meta: { name: "", grade: "" },
   likert: {},  // { qid: 1..24 => 1..5 }
   forced: {},  // { qid: 25..40 => "A" or "B" }
-  theme: "dark",
 };
 
 let radarChart = null;
@@ -90,7 +93,6 @@ let radarChartPrint = null;
 const el = (id) => document.getElementById(id);
 
 // --- DOM refs
-const themeToggle = el("themeToggle");
 const startBtn = el("startBtn");
 const resumeBtn = el("resumeBtn");
 const resetBtn = el("resetBtn");
@@ -127,24 +129,6 @@ const summaryTextPrint = el("summaryTextPrint");
 const scoresTablePrint = el("scoresTablePrint");
 
 // ----------------- utilities -----------------
-function applyTheme(theme){
-  state.theme = theme;
-  document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
-}
-
-function toggleTheme(){
-  applyTheme(state.theme === "light" ? "dark" : "light");
-  persist();
-
-  const resultsVisible = resultsSection && !resultsSection.classList.contains("hidden");
-  if (resultsVisible) {
-    const { results, topSorted } = computeScores();
-    renderRadar(results);
-    populatePrintView(results, topSorted);
-    renderRadarPrint(results); // screen preview
-  }
-}
-
 function persist(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -155,6 +139,8 @@ function loadSaved(){
   try{
     const parsed = JSON.parse(raw);
     state = { ...state, ...parsed };
+    // defensive: strip any old theme field
+    if ("theme" in state) delete state.theme;
     return true;
   }catch{
     return false;
@@ -217,10 +203,10 @@ function signalLine(value){
 function buildSummary(topTwo){
   const [a,b] = topTwo;
   const name = (state.meta.name || "You").trim();
-  return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers — especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
+  return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers—especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
 }
 
-// Selected-state helper (no :has needed)
+// Selected-state helper (works with CSS: .choice.selected)
 function syncSelectedStyles(groupName){
   const inputs = document.querySelectorAll(`input[name="${groupName}"]`);
   inputs.forEach(inp=>{
@@ -413,10 +399,10 @@ function renderRadar(scores){
   const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
 
-  const isLight = document.documentElement.getAttribute("data-theme") === "light";
-  const grid = isLight ? "rgba(10,20,40,.14)" : "rgba(255,255,255,.14)";
-  const ticks = isLight ? "rgba(10,20,40,.70)" : "rgba(255,255,255,.75)";
-  const labelColor = isLight ? "#10162a" : "#e9eefc";
+  // Light mode colors
+  const grid = "rgba(10,20,40,.14)";
+  const ticks = "rgba(10,20,40,.70)";
+  const labelColor = "#10162a";
 
   if(radarChart) radarChart.destroy();
 
@@ -455,23 +441,20 @@ function renderRadar(scores){
   });
 }
 
-function renderRadarPrint(scores, mode = "screen"){
+function renderRadarPrint(scores){
   const canvas = el("radarChartPrint");
   if(!canvas) return;
 
   const labels = wrappedLabelsOptionB(scores);
   const data = scores.map(s=>s.score100);
 
-  const isPrint = mode === "print";
-  const isLightTheme = document.documentElement.getAttribute("data-theme") === "light";
-
-  // Strong print contrast (Chrome-friendly)
-  const axis   = isPrint ? "rgba(0,0,0,0.55)" : (isLightTheme ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.28)");
-  const angle  = isPrint ? "rgba(0,0,0,0.40)" : (isLightTheme ? "rgba(0,0,0,0.30)" : "rgba(255,255,255,0.18)");
-  const tick   = isPrint ? "#000000"          : (isLightTheme ? "#000000" : "rgba(255,255,255,0.85)");
-  const label  = isPrint ? "#000000"          : (isLightTheme ? "#000000" : "rgba(255,255,255,0.92)");
-  const stroke = isPrint ? "#000000"          : (isLightTheme ? "#111111" : "rgba(255,255,255,0.92)");
-  const fill   = isPrint ? "rgba(0,0,0,0.18)" : (isLightTheme ? "rgba(0,0,0,0.20)" : "rgba(255,255,255,0.12)");
+  // Print: bold black/gray
+  const axis   = "rgba(0,0,0,0.55)";
+  const angle  = "rgba(0,0,0,0.40)";
+  const tick   = "#000000";
+  const label  = "#000000";
+  const stroke = "#000000";
+  const fill   = "rgba(0,0,0,0.18)";
 
   if(radarChartPrint) radarChartPrint.destroy();
 
@@ -481,27 +464,32 @@ function renderRadarPrint(scores, mode = "screen"){
       labels,
       datasets: [{
         data,
-        borderWidth: isPrint ? 4 : 3,
+        borderWidth: 4,
         backgroundColor: fill,
         borderColor: stroke,
         pointBackgroundColor: stroke,
         pointBorderColor: stroke,
-        pointRadius: isPrint ? 5 : 4
+        pointRadius: 5
       }]
     },
     options: {
       responsive: false,
-      // ✅ CRITICAL: disable animation so Chrome print doesn't snapshot a blank canvas
+      // ✅ Chrome print-safe: render instantly
       animation: false,
       plugins: { legend: { display:false } },
       scales: {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: axis, lineWidth: isPrint ? 1.8 : 1.3 },
-          angleLines: { color: angle, lineWidth: isPrint ? 1.5 : 1.1 },
+          grid: { color: axis, lineWidth: 1.8 },
+          angleLines: { color: angle, lineWidth: 1.5 },
           pointLabels: { color: label, font: { size: 12, weight: "700", lineHeight: 1.25 } },
-          ticks: { color: tick, backdropColor: "transparent", stepSize: 20, font: { size: 11, weight: "600" } }
+          ticks: {
+            color: tick,
+            backdropColor: "transparent",
+            stepSize: 20,
+            font: { size: 11, weight: "600" }
+          }
         }
       }
     }
@@ -558,6 +546,7 @@ function renderExecutiveScoresGrid(results){
   if(!host) return;
 
   const sorted = results.slice().sort((a,b)=> b.score100 - a.score100);
+
   const colA = sorted.slice(0,3);
   const colB = sorted.slice(3,6);
 
@@ -638,7 +627,6 @@ function resetState(){
 // ----------------- init -----------------
 (function init(){
   const hasSaved = loadSaved();
-  applyTheme(state.theme || "dark");
 
   if(hasSaved){
     studentName.value = state.meta?.name || "";
@@ -648,8 +636,6 @@ function resetState(){
   renderLikert();
   renderForced();
   updateProgress();
-
-  themeToggle?.addEventListener("click", toggleTheme);
 
   tabLikert?.addEventListener("click", ()=> setTab("likert"));
   tabForced?.addEventListener("click", ()=> setTab("forced"));
@@ -700,6 +686,7 @@ function resetState(){
 
     showResults();
 
+    // Fill student UI
     topValues.innerHTML = "";
     topSorted.forEach(item=>{
       const li = document.createElement("li");
@@ -707,11 +694,13 @@ function resetState(){
         <span class="badge">${band(item.score100)}</span>`;
       topValues.appendChild(li);
     });
+
     summaryText.textContent = buildSummary(topTwo);
 
+    // Render charts + populate counselor print view
     renderRadar(results);
     populatePrintView(results, topSorted);
-    renderRadarPrint(results); // screen preview
+    renderRadarPrint(results);
   });
 
   backBtn?.addEventListener("click", showAssessment);
@@ -738,7 +727,7 @@ function resetState(){
     }
   });
 
-  // ✅ Chrome-safe print: temporarily show printView, render chart with mode="print" and no animation
+  // ✅ Print counselor copy (Chrome-safe)
   if (printBtn) {
     printBtn.addEventListener("click", () => {
       const { results, topSorted } = computeScores();
@@ -746,9 +735,10 @@ function resetState(){
       showResults();
       populatePrintView(results, topSorted);
 
-      if (printView) printView.style.display = "block"; // critical for Chrome sizing
+      // Ensure print view is not display:none before drawing
+      if (printView) printView.style.display = "block";
 
-      renderRadarPrint(results, "print");
+      renderRadarPrint(results);
 
       requestAnimationFrame(() => {
         window.print();
@@ -759,11 +749,9 @@ function resetState(){
 
   window.addEventListener("beforeprint", () => {
     const { results, topSorted } = computeScores();
-
     showResults();
     populatePrintView(results, topSorted);
-
     if (printView) printView.style.display = "block";
-    renderRadarPrint(results, "print");
+    renderRadarPrint(results);
   });
 })();
