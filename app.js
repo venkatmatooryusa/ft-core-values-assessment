@@ -1,8 +1,7 @@
 /* Forgotten Tracks – Core Values Assessment (LIGHT MODE ONLY)
    Static, client-side only. No backend.
-   - No theme toggle
    - Counselor print view hidden on screen; shown only for printing
-   - Print radar Chrome-safe (no animation + forced draw)
+   - Print radar Chrome-safe: render to canvas -> convert to PNG <img> -> print <img>
 */
 
 const FT_VALUES = [
@@ -14,7 +13,6 @@ const FT_VALUES = [
   "Aesthetics & Experience",
 ];
 
-// --- Likert questions (24): 4 per value, in order
 const LIKERT_QUESTIONS = [
   { id: 1, value: FT_VALUES[0], text: "I enjoy turning confusing information into something clear and understandable." },
   { id: 2, value: FT_VALUES[0], text: "I feel satisfied when I connect different ideas into one explanation." },
@@ -47,7 +45,6 @@ const LIKERT_QUESTIONS = [
   { id: 24, value: FT_VALUES[5], text: "I believe beauty and experience matter, not just function." },
 ];
 
-// --- Forced-choice (16)
 const FORCED_QUESTIONS = [
   { id: 25, a: { text: "Explaining complex ideas clearly", value: FT_VALUES[0] }, b: { text: "Making systems work better", value: FT_VALUES[3] } },
   { id: 26, a: { text: "Protecting something important from harm", value: FT_VALUES[1] }, b: { text: "Making opportunities fairer", value: FT_VALUES[2] } },
@@ -67,12 +64,10 @@ const FORCED_QUESTIONS = [
   { id: 40, a: { text: "Making access more equitable", value: FT_VALUES[2] }, b: { text: "Designing elegant experiences", value: FT_VALUES[5] } },
 ];
 
-// Scoring constants
 const LIKERT_WEIGHT = 1.5;
 const FORCED_WEIGHT = 1.0;
 const LIKERT_MAX_PER_VALUE = 20 * LIKERT_WEIGHT;
 
-// Local storage key
 const STORAGE_KEY = "ft_core_values_assessment_v1";
 
 let state = {
@@ -122,43 +117,27 @@ const topValuesPrint = el("topValuesPrint");
 const summaryTextPrint = el("summaryTextPrint");
 const scoresTablePrint = el("scoresTablePrint");
 
-// ----------------- utilities -----------------
-function persist(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
+// ---------- utilities ----------
+function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 function loadSaved(){
   const raw = localStorage.getItem(STORAGE_KEY);
   if(!raw) return false;
-  try{
-    const parsed = JSON.parse(raw);
-    state = { ...state, ...parsed };
-    return true;
-  }catch{
-    return false;
-  }
+  try{ state = { ...state, ...JSON.parse(raw) }; return true; }catch{ return false; }
 }
-
-function clearSaved(){
-  localStorage.removeItem(STORAGE_KEY);
-}
+function clearSaved(){ localStorage.removeItem(STORAGE_KEY); }
 
 function showAssessment(){
   assessmentSection.classList.remove("hidden");
   resultsSection.classList.add("hidden");
   window.location.hash = "#assessment";
 }
-
 function showResults(){
   assessmentSection.classList.add("hidden");
   resultsSection.classList.remove("hidden");
   window.location.hash = "#results";
 }
 
-function answeredCount(){
-  return Object.keys(state.likert).length + Object.keys(state.forced).length;
-}
-
+function answeredCount(){ return Object.keys(state.likert).length + Object.keys(state.forced).length; }
 function updateProgress(){
   const answered = answeredCount();
   progressText.textContent = `${answered} / 40 answered`;
@@ -170,16 +149,13 @@ function escapeHtml(str){
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
   }[m]));
 }
-
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
-
 function band(score){
   if(score >= 80) return "Core Driver";
   if(score >= 60) return "Strong Preference";
   if(score >= 40) return "Supporting Value";
   return "Low Pull";
 }
-
 function signalLine(value){
   switch(value){
     case "Clarity & Synthesis": return "Enjoys organizing complexity into clear understanding.";
@@ -191,7 +167,6 @@ function signalLine(value){
     default: return "";
   }
 }
-
 function buildSummary(topTwo){
   const [a,b] = topTwo;
   const name = (state.meta.name || "You").trim();
@@ -199,15 +174,13 @@ function buildSummary(topTwo){
 }
 
 function syncSelectedStyles(groupName){
-  const inputs = document.querySelectorAll(`input[name="${groupName}"]`);
-  inputs.forEach(inp=>{
+  document.querySelectorAll(`input[name="${groupName}"]`).forEach(inp=>{
     const lab = inp.closest("label.choice");
-    if(!lab) return;
-    lab.classList.toggle("selected", inp.checked);
+    if(lab) lab.classList.toggle("selected", inp.checked);
   });
 }
 
-// ----------------- rendering -----------------
+// ---------- rendering ----------
 function renderLikert(){
   likertContainer.innerHTML = "";
   const scaleLabels = [
@@ -284,12 +257,10 @@ function renderForced(){
     `;
 
     const choices = wrap.querySelector(".choices");
-    const options = [
+    [
       { key:"A", text:q.a.text },
-      { key:"B", text:q.b.text },
-    ];
-
-    options.forEach(opt=>{
+      { key:"B", text:q.b.text }
+    ].forEach(opt=>{
       const id = `forced_${q.id}_${opt.key}`;
       const choice = document.createElement("label");
       choice.className = "choice";
@@ -318,7 +289,7 @@ function renderForced(){
   });
 }
 
-// ----------------- validation & scoring -----------------
+// ---------- validation & scoring ----------
 function validateAllAnswered(){
   const missingLikert = LIKERT_QUESTIONS.filter(q => state.likert[q.id] == null);
   const missingForced = FORCED_QUESTIONS.filter(q => state.forced[q.id] == null);
@@ -356,17 +327,15 @@ function computeScores(){
   });
 
   const results = FT_VALUES.map(value=>{
-    const weighted = (likertTotals[value]*LIKERT_WEIGHT) + (forcedTotals[value]*FORCED_WEIGHT);
-    const maxPossible = LIKERT_MAX_PER_VALUE + (forcedAppearCounts[value] * FORCED_WEIGHT);
+    const weighted = (likertTotals[value]*LIKERT_WEIGHT) + (forcedTotals[value]*1.0);
+    const maxPossible = LIKERT_MAX_PER_VALUE + (forcedAppearCounts[value] * 1.0);
     const normalized = maxPossible > 0 ? Math.round((weighted / maxPossible) * 100) : 0;
 
     return {
       value,
-      likertRaw: likertTotals[value],
-      forcedRaw: forcedTotals[value],
-      weighted,
-      maxPossible,
       score100: clamp(normalized, 0, 100),
+      likertRaw: likertTotals[value],
+      forcedRaw: forcedTotals[value]
     };
   });
 
@@ -374,7 +343,7 @@ function computeScores(){
   return { results, topSorted };
 }
 
-// ----------------- charts -----------------
+// ---------- charts ----------
 function wrappedLabels(scores){
   return scores.map(s =>
     s.value.includes(" & ")
@@ -390,10 +359,6 @@ function renderRadar(scores){
   const labels = wrappedLabels(scores);
   const data = scores.map(s=>s.score100);
 
-  const grid = "rgba(10,20,40,.14)";
-  const ticks = "rgba(10,20,40,.70)";
-  const labelColor = "#10162a";
-
   if(radarChart) radarChart.destroy();
 
   radarChart = new Chart(canvas, {
@@ -401,7 +366,6 @@ function renderRadar(scores){
     data: {
       labels,
       datasets: [{
-        label: "Core Values (0–100)",
         data,
         borderWidth: 2,
         backgroundColor: "rgba(34, 211, 238, 0.20)",
@@ -413,22 +377,33 @@ function renderRadar(scores){
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => `${ctx.formattedValue} / 100` } }
-      },
+      plugins: { legend: { display:false } },
       scales: {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: grid },
-          angleLines: { color: grid },
-          pointLabels: { color: labelColor, font: { size: 11, weight: "600", lineHeight: 1.2 } },
-          ticks: { color: ticks, backdropColor: "transparent", stepSize: 20 }
+          grid: { color: "rgba(10,20,40,.14)" },
+          angleLines: { color: "rgba(10,20,40,.14)" },
+          pointLabels: { color: "#10162a", font: { size: 11, weight: "600" } },
+          ticks: { color: "rgba(10,20,40,.70)", backdropColor: "transparent", stepSize: 20 }
         }
       }
     }
   });
+}
+
+function ensurePrintImg(){
+  let img = el("radarChartPrintImg");
+  if(img) return img;
+
+  const canvas = el("radarChartPrint");
+  if(!canvas) return null;
+
+  img = document.createElement("img");
+  img.id = "radarChartPrintImg";
+  img.alt = "Core values radar chart";
+  canvas.insertAdjacentElement("afterend", img);
+  return img;
 }
 
 function renderRadarPrint(scores){
@@ -437,14 +412,6 @@ function renderRadarPrint(scores){
 
   const labels = wrappedLabels(scores);
   const data = scores.map(s=>s.score100);
-
-  // Print: bold black/gray for maximum contrast on paper
-  const axis   = "rgba(0,0,0,0.55)";
-  const angle  = "rgba(0,0,0,0.40)";
-  const tick   = "#000000";
-  const label  = "#000000";
-  const stroke = "#000000";
-  const fill   = "rgba(0,0,0,0.18)";
 
   if(radarChartPrint) radarChartPrint.destroy();
 
@@ -455,41 +422,46 @@ function renderRadarPrint(scores){
       datasets: [{
         data,
         borderWidth: 4,
-        backgroundColor: fill,
-        borderColor: stroke,
-        pointBackgroundColor: stroke,
-        pointBorderColor: stroke,
+        backgroundColor: "rgba(0,0,0,0.18)",
+        borderColor: "#000",
+        pointBackgroundColor: "#000",
+        pointBorderColor: "#000",
         pointRadius: 5
       }]
     },
     options: {
       responsive: false,
-      animation: false, // ✅ Chrome print-safe
+      animation: false,
       plugins: { legend: { display:false } },
       scales: {
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: axis, lineWidth: 1.8 },
-          angleLines: { color: angle, lineWidth: 1.5 },
-          pointLabels: { color: label, font: { size: 12, weight: "700", lineHeight: 1.25 } },
-          ticks: {
-            color: tick,
-            backdropColor: "transparent",
-            stepSize: 20,
-            font: { size: 11, weight: "600" }
-          }
+          grid: { color: "rgba(0,0,0,0.55)", lineWidth: 1.8 },
+          angleLines: { color: "rgba(0,0,0,0.40)", lineWidth: 1.5 },
+          pointLabels: { color: "#000", font: { size: 12, weight: "700" } },
+          ticks: { color: "#000", backdropColor: "transparent", stepSize: 20, font: { size: 11, weight: "600" } }
         }
       }
     }
   });
 
-  // Force immediate draw
+  // force draw
   radarChartPrint.resize();
   radarChartPrint.update("none");
+
+  // ✅ convert to PNG for Chrome print reliability
+  const img = ensurePrintImg();
+  if(img){
+    try{
+      img.src = canvas.toDataURL("image/png");
+    }catch(e){
+      // if blocked, leave img empty; canvas may still work
+    }
+  }
 }
 
-// ----------------- print view population -----------------
+// ---------- print view population ----------
 function populatePrintView(results, topSorted){
   if(!printMeta || !printDate || !topValuesPrint || !summaryTextPrint || !scoresTablePrint) return;
 
@@ -511,24 +483,20 @@ function populatePrintView(results, topSorted){
   summaryTextPrint.textContent = buildSummary(topSorted.slice(0,2));
 
   const tbody = scoresTablePrint.querySelector("tbody");
-  if(!tbody) return;
   tbody.innerHTML = "";
-  results
-    .slice()
-    .sort((a,b)=> b.score100 - a.score100)
-    .forEach(row=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(row.value)}</td>
-        <td><strong>${row.score100}</strong></td>
-        <td>${escapeHtml(band(row.score100))}</td>
-        <td>${escapeHtml(signalLine(row.value))}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+  results.slice().sort((a,b)=> b.score100 - a.score100).forEach(row=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(row.value)}</td>
+      <td><strong>${row.score100}</strong></td>
+      <td>${escapeHtml(band(row.score100))}</td>
+      <td>${escapeHtml(signalLine(row.value))}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
-// ----------------- downloads -----------------
+// ---------- downloads ----------
 function downloadJson(payload){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
@@ -537,7 +505,6 @@ function downloadJson(payload){
   a.click();
   URL.revokeObjectURL(a.href);
 }
-
 function downloadChartPng(){
   const canvas = el("radarChart");
   if(!canvas) return;
@@ -547,7 +514,7 @@ function downloadChartPng(){
   a.click();
 }
 
-// ----------------- UI wiring -----------------
+// ---------- UI wiring ----------
 function setTab(which){
   if(which === "likert"){
     tabLikert.classList.add("active");
@@ -574,10 +541,9 @@ function resetState(){
   updateProgress();
 }
 
-// ----------------- init -----------------
+// ---------- init ----------
 (function init(){
   const hasSaved = loadSaved();
-
   if(hasSaved){
     studentName.value = state.meta?.name || "";
     studentGrade.value = state.meta?.grade || "";
@@ -632,7 +598,6 @@ function resetState(){
     if(!v.ok) return;
 
     const { results, topSorted } = computeScores();
-    const topTwo = topSorted.slice(0,2);
 
     showResults();
 
@@ -644,10 +609,10 @@ function resetState(){
         <span class="badge">${band(item.score100)}</span>`;
       topValues.appendChild(li);
     });
-    summaryText.textContent = buildSummary(topTwo);
+    summaryText.textContent = buildSummary(topSorted.slice(0,2));
     renderRadar(results);
 
-    // Counselor print content
+    // Print content
     populatePrintView(results, topSorted);
     renderRadarPrint(results);
   });
@@ -656,15 +621,14 @@ function resetState(){
 
   downloadJsonBtn?.addEventListener("click", ()=>{
     const { results } = computeScores();
-    const payload = {
+    downloadJson({
       title: "Forgotten Tracks – Core Values Assessment",
       version: "v1",
       timestamp: new Date().toISOString(),
       student: { name: state.meta.name || "", grade: state.meta.grade || "" },
       answers: { likert: state.likert, forced: state.forced },
       scores: results
-    };
-    downloadJson(payload);
+    });
   });
 
   downloadPngBtn?.addEventListener("click", downloadChartPng);
@@ -680,7 +644,6 @@ function resetState(){
   if (printBtn) {
     printBtn.addEventListener("click", () => {
       const { results, topSorted } = computeScores();
-
       showResults();
       populatePrintView(results, topSorted);
 
@@ -689,11 +652,11 @@ function resetState(){
 
       renderRadarPrint(results);
 
-      requestAnimationFrame(() => {
+      // give Chrome a beat to rasterize the PNG src
+      setTimeout(() => {
         window.print();
-        // restore hidden state after launching print
         if (printView) printView.classList.add("hidden");
-      });
+      }, 180);
     });
   }
 
