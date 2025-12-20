@@ -158,23 +158,26 @@
           </div>
         </div>
 
-        <h3 class="mt">Scores table</h3>
+       <h3 class="mt">Scores summary</h3>
 
-        <!-- Page 2: full table (CSS forces a new page when printing) -->
-        <table class="print-table" id="scoresTablePrint">
-          <thead>
-            <tr>
-              <th>Core Value</th>
-              <th>Score (0–100)</th>
-              <th>Band</th>
-              <th>What it signals (short)</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+       <!-- Page 1: executive compact grid (populated by JS) -->
+       <div id="scoresTablePrintExec"></div>
 
-        <!-- Page 1: executive compact grid (populated by JS) -->
-        <div id="scoresTablePrintExec"></div>
+       <h3 class="mt">Scores table</h3>
+
+       <!-- Page 2: full table (CSS forces a new page when printing) -->
+       <table class="print-table" id="scoresTablePrint">
+         <thead>
+           <tr>
+             <th>Core Value</th>
+             <th>Score (0–100)</th>
+             <th>Band</th>
+             <th>What it signals (short)</th>
+           </tr>
+         </thead>
+         <tbody></tbody>
+       </table>
+ 
 
         <div class="print-footer">
           <div><strong>Reminder:</strong> This reflects what energizes the student, not ability or performance.</div>
