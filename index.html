@@ -17,7 +17,7 @@
       </div>
     </div>
 
-    <!-- Light mode only: removed theme toggle -->
+    <!-- Light mode only -->
     <div class="header-actions">
       <a class="btn btn-ghost" href="#about">About</a>
     </div>
@@ -88,13 +88,14 @@
         <h2>Results</h2>
         <div class="actions">
           <button id="backBtn" class="btn btn-secondary" type="button">Back to questions</button>
-          <button id="printBtn" class="btn btn-primary" type="button">Print (Counselor)</button>
+          <button id="printBtn" class="btn btn-primary" type="button">Print / Save as PDF (Counselor)</button>
           <button id="downloadJsonBtn" class="btn btn-secondary" type="button">Download JSON</button>
           <button id="downloadPngBtn" class="btn btn-secondary" type="button">Download Chart PNG</button>
           <button id="clearSavedBtn" class="btn btn-ghost" type="button">Clear saved attempt</button>
         </div>
       </div>
 
+      <!-- Student-facing results -->
       <div class="grid2 results-grid">
         <div class="panel">
           <h3>Radar chart</h3>
@@ -125,8 +126,8 @@
 
       <hr class="print-sep" />
 
-      <!-- Counselor print view (Page 1: exec summary + radar, Page 2: full table) -->
-      <section id="printView" class="print card-print">
+      <!-- Counselor print view: hidden on screen; shown only in print -->
+      <section id="printView" class="print card-print hidden">
         <div class="print-header">
           <div>
             <h2 class="print-title">Forgotten Tracks – Core Values Results</h2>
@@ -158,26 +159,18 @@
           </div>
         </div>
 
-       <h3 class="mt">Scores summary</h3>
-
-       <!-- Page 1: executive compact grid (populated by JS) -->
-       <div id="scoresTablePrintExec"></div>
-
-       <h3 class="mt">Scores table</h3>
-
-       <!-- Page 2: full table (CSS forces a new page when printing) -->
-       <table class="print-table" id="scoresTablePrint">
-         <thead>
-           <tr>
-             <th>Core Value</th>
-             <th>Score (0–100)</th>
-             <th>Band</th>
-             <th>What it signals (short)</th>
-           </tr>
-         </thead>
-         <tbody></tbody>
-       </table>
- 
+        <h3 class="mt">Scores table</h3>
+        <table class="print-table" id="scoresTablePrint">
+          <thead>
+            <tr>
+              <th>Core Value</th>
+              <th>Score (0–100)</th>
+              <th>Band</th>
+              <th>What it signals (short)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
 
         <div class="print-footer">
           <div><strong>Reminder:</strong> This reflects what energizes the student, not ability or performance.</div>
@@ -199,7 +192,6 @@
     </section>
   </main>
 
-  <!-- Chart.js (Radar chart) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="./app.js"></script>
 </body>
