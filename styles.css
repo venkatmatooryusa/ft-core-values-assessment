@@ -318,6 +318,13 @@ select{appearance:auto}
 }
 .muted{ color:var(--muted); }
 
+/* ---- PNG fallback image for print radar ---- */
+#radarChartPrintImg{
+  display:none;
+  width:520px;
+  height:auto;
+}
+
 /* ---------- PRINT RULES (Chrome PDF) ---------- */
 @media print{
 
@@ -330,7 +337,7 @@ select{appearance:auto}
     print-color-adjust: exact;
   }
 
-  /* IMPORTANT: show counselor print view even though hidden on screen */
+  /* Show counselor print view even though hidden on screen */
   #printView.hidden{ display:block !important; }
 
   /* Hide everything else (prevents duplication) */
@@ -362,23 +369,15 @@ select{appearance:auto}
 
   body{ font-size: 11px !important; line-height: 1.22 !important; }
 
-  canvas{
+  /* ✅ Print the PNG image (Chrome-safe) and hide the canvas */
+  #radarChartPrint{ display:none !important; }
+  #radarChartPrintImg{
     display:block !important;
-    max-width:100% !important;
-    height:auto !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* Print radar size */
-  #radarChartPrint{
     width: 440px !important;
     height: 440px !important;
-    max-width: 440px !important;
-    max-height: 440px !important;
+    object-fit: contain !important;
   }
 
-  /* Avoid breaking the radar box */
   .print-chart{
     break-inside: avoid;
     page-break-inside: avoid;
@@ -388,8 +387,8 @@ select{appearance:auto}
   #scoresTablePrint{
     display: table !important;
     width: 100% !important;
-    break-before: page !important;         /* modern */
-    page-break-before: always !important;  /* legacy */
+    break-before: page !important;
+    page-break-before: always !important;
     margin-top: 0 !important;
   }
 
