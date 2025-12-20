@@ -1,3 +1,11 @@
+/* Forgotten Tracks – Core Values Assessment
+   Light-mode only + Portrait-optimized Counselor Print (Chrome)
+   - Counselor print view hidden on screen; shown only in print
+   - Radar prints reliably via PNG <img id="radarChartPrintImg">
+   - Portrait @page + single-column layout
+   - Scores table forced to Page 2
+*/
+
 :root{
   --ft-gold:#fbbf24;
   --ft-teal:#22d3ee;
@@ -57,15 +65,7 @@ h1{margin:0; font-size:22px; letter-spacing:.2px}
 }
 
 /* ---------- Cards ---------- */
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  padding:18px;
-  margin-top:16px;
-}
-
+.card,
 .card-print{
   background:var(--card);
   border:1px solid var(--line);
@@ -88,7 +88,12 @@ h1{margin:0; font-size:22px; letter-spacing:.2px}
   .header{flex-direction:column; align-items:flex-start}
 }
 
-.field span{display:block; color:var(--muted); font-size:12px; margin:0 0 6px}
+.field span{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin:0 0 6px
+}
 input,select{
   width:100%;
   padding:12px 12px;
@@ -108,6 +113,7 @@ select{appearance:auto}
   border-radius:14px;
   cursor:pointer;
   font-weight:600;
+  transition: transform .12s ease;
 }
 .btn:hover{transform: translateY(-1px)}
 .btn:active{transform: translateY(0px)}
@@ -119,7 +125,12 @@ select{appearance:auto}
 .btn-secondary{background: var(--btn2)}
 .btn-ghost{background:transparent}
 
-.actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:12px
+}
 .hint{color:var(--muted); font-size:13px; margin-top:10px}
 
 /* ---------- Assessment ---------- */
@@ -132,8 +143,18 @@ select{appearance:auto}
 }
 .progress{min-width:240px}
 .progress span{color:var(--muted); font-size:12px}
-.bar{height:10px; border-radius:999px; background:rgba(10,20,40,.08); overflow:hidden; margin-top:8px}
-.bar-fill{height:100%; width:0%; background: linear-gradient(90deg,var(--ft-teal),var(--ft-gold))}
+.bar{
+  height:10px;
+  border-radius:999px;
+  background:rgba(10,20,40,.08);
+  overflow:hidden;
+  margin-top:8px
+}
+.bar-fill{
+  height:100%;
+  width:0%;
+  background: linear-gradient(90deg,var(--ft-teal),var(--ft-gold))
+}
 
 .tabs{display:flex; gap:10px; margin-top:14px}
 .tab{
@@ -318,17 +339,18 @@ select{appearance:auto}
 }
 .muted{ color:var(--muted); }
 
-/* ---- PNG fallback image for print radar ---- */
+/* PNG fallback for print radar (inserted by JS) */
 #radarChartPrintImg{
   display:none;
   width:520px;
   height:auto;
 }
 
-/* ---------- PRINT RULES (Chrome PDF) ---------- */
+/* ---------- PRINT RULES (PORTRAIT, CHROME PDF) ---------- */
 @media print{
 
-  @page { size: landscape; margin: 0.45in; }
+  /* Portrait page */
+  @page { size: portrait; margin: 0.55in; }
 
   html, body{
     background:#fff !important;
@@ -339,6 +361,7 @@ select{appearance:auto}
 
   /* Show counselor print view even though hidden on screen */
   #printView.hidden{ display:block !important; }
+  #printView{ display:block !important; }
 
   /* Hide everything else (prevents duplication) */
   header,
@@ -358,32 +381,44 @@ select{appearance:auto}
     display:none !important;
   }
 
-  #results{ display:block !important; border:none !important; box-shadow:none !important; }
-  #printView{ display:block !important; }
+  #results{
+    display:block !important;
+    border:none !important;
+    box-shadow:none !important;
+  }
 
+  /* Flatten styling for print clarity */
   .card, .panel, .print-chart, .print-summary, .card-print{
     box-shadow:none !important;
     background:#fff !important;
     border: 1px solid #bbb !important;
   }
 
-  body{ font-size: 11px !important; line-height: 1.22 !important; }
+  body{ font-size: 10.8px !important; line-height: 1.2 !important; }
 
-  /* ✅ Print the PNG image (Chrome-safe) and hide the canvas */
+  /* Portrait: use single column to avoid squishing */
+  .print-grid{
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* Radar: print the PNG image and hide the canvas */
   #radarChartPrint{ display:none !important; }
   #radarChartPrintImg{
     display:block !important;
-    width: 440px !important;
-    height: 440px !important;
+    width: 380px !important;
+    height: 380px !important;
     object-fit: contain !important;
+    margin: 4px auto 0 !important;
   }
 
-  .print-chart{
+  /* Don’t split key boxes */
+  .print-chart, .print-summary, .print-header{
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* Page 2: force full table onto new page */
+  /* Table on page 2 */
   #scoresTablePrint{
     display: table !important;
     width: 100% !important;
@@ -398,7 +433,17 @@ select{appearance:auto}
   #scoresTablePrint tr{ break-inside: avoid; page-break-inside: avoid; }
 
   #scoresTablePrint th, #scoresTablePrint td{
-    padding: 8px !important;
-    font-size: 10.5px !important;
+    padding: 7px !important;
+    font-size: 10px !important;
+  }
+
+  .print-title{ font-size: 16px !important; }
+  .pill{ font-size: 10.5px !important; padding: 3px 8px !important; }
+
+  .print-footer{
+    margin-top: 10px !important;
+    padding-top: 8px !important;
+    font-size: 10.2px !important;
+    border-top: 1px solid #bbb !important;
   }
 }
