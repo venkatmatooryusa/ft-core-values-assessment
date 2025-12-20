@@ -2,7 +2,7 @@
   --ft-gold:#fbbf24;
   --ft-teal:#22d3ee;
 
-  /* Light mode palette (only) */
+  /* Light-only palette */
   --bg:#f6f7fb;
   --card:#ffffff;
   --text:#10162a;
@@ -19,6 +19,7 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
+
 body{
   margin:0;
   font-family:var(--font);
@@ -29,6 +30,7 @@ body{
   color:var(--text);
 }
 
+/* ---------- Header ---------- */
 .header{
   max-width:var(--maxw);
   margin:26px auto 8px;
@@ -75,6 +77,7 @@ h1{margin:0; font-size:22px; letter-spacing:.2px}
 
 .hidden{display:none !important}
 
+/* ---------- Forms ---------- */
 .grid2{
   display:grid;
   grid-template-columns: 1fr 1fr;
@@ -96,6 +99,7 @@ input,select{
 }
 select{appearance:auto}
 
+/* ---------- Buttons ---------- */
 .btn{
   border:1px solid var(--line);
   background: var(--btn);
@@ -118,6 +122,7 @@ select{appearance:auto}
 .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
 .hint{color:var(--muted); font-size:13px; margin-top:10px}
 
+/* ---------- Assessment ---------- */
 .section-head{
   display:flex;
   align-items:flex-start;
@@ -152,7 +157,6 @@ select{appearance:auto}
   margin-top:12px;
   background:#fbfcff;
 }
-
 .qhead{
   display:flex;
   justify-content:space-between;
@@ -181,6 +185,7 @@ select{appearance:auto}
   background: rgba(34,211,238,.08);
 }
 
+/* Sticky footer actions */
 .sticky{
   position:sticky;
   bottom:12px;
@@ -195,6 +200,7 @@ select{appearance:auto}
   color:#b00020;
 }
 
+/* ---------- Results ---------- */
 .results-grid .panel{
   padding:14px;
   border:1px solid var(--line);
@@ -214,6 +220,7 @@ select{appearance:auto}
   font-size:12px;
 }
 
+/* About cards */
 .value-grid{
   display:grid;
   grid-template-columns: repeat(3, 1fr);
@@ -229,8 +236,8 @@ select{appearance:auto}
 .value h4{margin:0 0 6px}
 .value p{margin:0; color:var(--muted); font-size:13px}
 
+/* ---------- Print View (screen) ---------- */
 .print-sep{ margin:18px 0; border:none; border-top:1px solid var(--line); }
-
 .print{ margin-top:14px; }
 
 .print-header{
@@ -269,10 +276,7 @@ select{appearance:auto}
   padding:12px;
   background:#fbfcff;
 }
-
-.print-chart{
-  border: 2px solid var(--line);
-}
+.print-chart{ border: 2px solid var(--line); }
 
 .print-small{ margin-top:8px; color:var(--muted); font-size:12px; }
 .print-paragraph{ margin:0; color:var(--text); line-height:1.5; }
@@ -287,6 +291,7 @@ select{appearance:auto}
 
 .mt{ margin-top:16px; }
 
+/* Print table */
 .print-table{
   width:100%;
   border-collapse:collapse;
@@ -313,8 +318,9 @@ select{appearance:auto}
 }
 .muted{ color:var(--muted); }
 
-/* ---------- PRINT RULES ---------- */
+/* ---------- PRINT RULES (Chrome PDF) ---------- */
 @media print{
+
   @page { size: landscape; margin: 0.45in; }
 
   html, body{
@@ -324,23 +330,10 @@ select{appearance:auto}
     print-color-adjust: exact;
   }
 
-  canvas{
-    display:block !important;
-    max-width:100% !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+  /* IMPORTANT: show counselor print view even though hidden on screen */
+  #printView.hidden{ display:block !important; }
 
-  #radarChartPrint{
-    width: 440px !important;
-    height: 440px !important;
-    max-width: 440px !important;
-    max-height: 440px !important;
-  }
-
-  *{ box-sizing: border-box !important; }
-
-  /* Print ONLY counselor copy */
+  /* Hide everything else (prevents duplication) */
   header,
   .intro,
   .tabs,
@@ -369,48 +362,42 @@ select{appearance:auto}
 
   body{ font-size: 11px !important; line-height: 1.22 !important; }
 
-  #printView{
-    width: 100%;
-    margin: 0 !important;
-    padding: 8px !important;
-    border: 1px solid #bbb !important;
+  canvas{
+    display:block !important;
+    max-width:100% !important;
+    height:auto !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .print-header{ padding-bottom: 8px !important; margin-bottom: 8px !important; }
-  .print-title{ font-size: 18px !important; }
-  .pill{ font-size: 11px !important; padding: 3px 8px !important; }
-
-  .print-grid{
-    grid-template-columns: 1.05fr .95fr !important;
-    gap: 10px !important;
+  /* Print radar size */
+  #radarChartPrint{
+    width: 440px !important;
+    height: 440px !important;
+    max-width: 440px !important;
+    max-height: 440px !important;
   }
 
-  .print-chart, .print-summary{ padding: 10px !important; border-radius: 10px !important; }
-
-  .notes-box{ height: 44px !important; }
-  .notes-box + .notes-box{ display:none !important; }
-
-  /* Chrome canvas reliability */
+  /* Avoid breaking the radar box */
   .print-chart{
-    break-inside: auto !important;
-    page-break-inside: auto !important;
-  }
-  #printView, .print-grid, .print-summary{
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  /* Page 2: full table (optional if you want it) */
+  /* Page 2: force full table onto new page */
   #scoresTablePrint{
     display: table !important;
     width: 100% !important;
-    break-before: page !important;
-    page-break-before: always !important;
+    break-before: page !important;         /* modern */
+    page-break-before: always !important;  /* legacy */
     margin-top: 0 !important;
   }
+
+  /* Repeat header row if table spans pages */
   #scoresTablePrint thead{ display: table-header-group; }
   #scoresTablePrint tfoot{ display: table-footer-group; }
   #scoresTablePrint tr{ break-inside: avoid; page-break-inside: avoid; }
+
   #scoresTablePrint th, #scoresTablePrint td{
     padding: 8px !important;
     font-size: 10.5px !important;
