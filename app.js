@@ -1,18 +1,12 @@
-/* Forgotten Tracks – Core Values Assessment (v1.2)
+/* Forgotten Tracks – Core Values Assessment (v1.3)
    Static, client-side only. No backend.
 
-   ✅ Key algorithm upgrade:
-   - Keep your existing 0–100 scoring math (Likert + Forced + normalization)
-   - Replace absolute threshold bands with RELATIVE rank-based bands (fixes “everything is Low Pull”)
+   ✅ Interpretation: Rank-based bands (explicit)
+   #1 Core Driver • #2 Strong • #3–4 Supporting • #5–6 Lower Pull
 
-   Rank bands (6 values):
-   #1 = Core Driver
-   #2 = Strong Preference
-   #3–4 = Supporting Value
-   #5–6 = Low Pull
-
-   ✅ Print robustness (Chrome):
-   - Print radar uses canvas -> PNG <img id="radarChartPrintImg"> for reliable PDF output
+   ✅ Print reliability (Chrome PDF):
+   - Print radar uses canvas -> PNG <img id="radarChartPrintImg">
+   - Avoid duplicate radar / removed executive grid
 */
 
 const FT_VALUES = [
@@ -86,7 +80,6 @@ const FORCED_QUESTIONS = [
 // Scoring constants
 const LIKERT_WEIGHT = 1.5;
 const FORCED_WEIGHT = 1.0;
-const LIKERT_MAX_PER_VALUE = 20 * LIKERT_WEIGHT;
 
 // Local storage key
 const STORAGE_KEY = "ft_core_values_assessment_v1";
@@ -95,17 +88,15 @@ let state = {
   meta: { name: "", grade: "" },
   likert: {},  // { qid: 1..24 => 1..5 }
   forced: {},  // { qid: 25..40 => "A" or "B" }
-  theme: "light", // safe default (your CSS can ignore)
 };
 
 let radarChart = null;
 let radarChartPrint = null;
 
-// --- DOM helper
+// DOM helper
 const el = (id) => document.getElementById(id);
 
-// --- DOM refs
-const themeToggle = el("themeToggle"); // optional; will no-op if not present
+// DOM refs
 const startBtn = el("startBtn");
 const resumeBtn = el("resumeBtn");
 const resetBtn = el("resetBtn");
@@ -125,6 +116,9 @@ const studentName = el("studentName");
 const studentGrade = el("studentGrade");
 
 const backBtn = el("backBtn");
+const printBtn = el("printBtn");
+const printView = el("printView");
+
 const downloadJsonBtn = el("downloadJsonBtn");
 const downloadPngBtn = el("downloadPngBtn");
 const clearSavedBtn = el("clearSavedBtn");
@@ -132,34 +126,13 @@ const clearSavedBtn = el("clearSavedBtn");
 const topValues = el("topValues");
 const summaryText = el("summaryText");
 
-// Print view refs
-const printBtn = el("printBtn");
-const printView = el("printView");
 const printMeta = el("printMeta");
 const printDate = el("printDate");
 const topValuesPrint = el("topValuesPrint");
 const summaryTextPrint = el("summaryTextPrint");
 const scoresTablePrint = el("scoresTablePrint");
 
-// ----------------- utilities -----------------
-function applyTheme(theme){
-  state.theme = theme;
-  document.documentElement.setAttribute("data-theme", theme === "light" ? "light" : "dark");
-}
-
-function toggleTheme(){
-  applyTheme(state.theme === "light" ? "dark" : "light");
-  persist();
-  // Re-render if results are visible
-  const resultsVisible = resultsSection && !resultsSection.classList.contains("hidden");
-  if (resultsVisible) {
-    const { results, ranked } = computeScores();
-    renderRadar(results);
-    populatePrintView(results, ranked);
-    renderRadarPrint(results);
-  }
-}
-
+// utilities
 function persist(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
 function loadSaved(){
@@ -206,12 +179,12 @@ function escapeHtml(str){
 
 function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
 
-/* ✅ NEW: Rank-based banding */
+// ✅ rank-based bands (explicit)
 function bandByRank(rankIndex){
   if(rankIndex === 0) return "Core Driver";
-  if(rankIndex === 1) return "Strong Preference";
-  if(rankIndex === 2 || rankIndex === 3) return "Supporting Value";
-  return "Low Pull";
+  if(rankIndex === 1) return "Strong";
+  if(rankIndex === 2 || rankIndex === 3) return "Supporting";
+  return "Lower Pull";
 }
 
 function signalLine(value){
@@ -232,7 +205,7 @@ function buildSummary(topTwo){
   return `${name} is most energized by ${a.value} and ${b.value}. That usually means you feel most motivated when your projects let you lean into these two drivers—especially in team roles, school clubs, or problem-solving situations where these strengths show up naturally.`;
 }
 
-// ----------------- rendering -----------------
+// rendering
 function renderLikert(){
   likertContainer.innerHTML = "";
   const scaleLabels = [
@@ -339,7 +312,7 @@ function renderForced(){
   });
 }
 
-// ----------------- validation & scoring -----------------
+// validation & scoring
 function validateAllAnswered(){
   const missingLikert = LIKERT_QUESTIONS.filter(q => state.likert[q.id] == null);
   const missingForced = FORCED_QUESTIONS.filter(q => state.forced[q.id] == null);
@@ -358,73 +331,46 @@ function validateAllAnswered(){
   return { ok:false };
 }
 
-/* ✅ Keep your scoring math, but:
-   - Don’t treat missing as 0 (we still validate, but this makes drafts safer)
-   - Add relative rank bands after scoring
-*/
 function computeScores(){
   const likertTotals = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
-  const likertAnsweredCounts = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
-
   const forcedTotals = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
   const forcedAppearCounts = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
-  const forcedAnsweredCounts = Object.fromEntries(FT_VALUES.map(v=>[v,0]));
 
-  // Likert
+  // Likert totals
   LIKERT_QUESTIONS.forEach(q=>{
-    const ans = state.likert[q.id];
-    if(ans != null){
-      likertTotals[q.value] += Number(ans);
-      likertAnsweredCounts[q.value] += 1;
-    }
+    likertTotals[q.value] += Number(state.likert[q.id] || 0);
   });
 
-  // Forced-choice
+  // Forced totals + appearances
   FORCED_QUESTIONS.forEach(q=>{
     forcedAppearCounts[q.a.value] += 1;
     forcedAppearCounts[q.b.value] += 1;
 
     const pick = state.forced[q.id];
-    if(pick === "A"){
-      forcedTotals[q.a.value] += 1;
-      forcedAnsweredCounts[q.a.value] += 1;
-      forcedAnsweredCounts[q.b.value] += 1;
-    }else if(pick === "B"){
-      forcedTotals[q.b.value] += 1;
-      forcedAnsweredCounts[q.a.value] += 1;
-      forcedAnsweredCounts[q.b.value] += 1;
-    }
+    if(pick === "A") forcedTotals[q.a.value] += 1;
+    if(pick === "B") forcedTotals[q.b.value] += 1;
   });
 
-  // Score per value (0–100)
+  // 0–100 normalized
   const results = FT_VALUES.map((value, idx)=>{
-    const likertMaxForThisValue = likertAnsweredCounts[value] * 5 * LIKERT_WEIGHT;
-    const forcedMaxForThisValue = (forcedAnsweredCounts[value] > 0 ? forcedAppearCounts[value] : forcedAppearCounts[value]) * FORCED_WEIGHT;
-    // In practice, forcedAnsweredCounts should equal forcedAppearCounts when complete. This keeps partial state sane.
-
-    const weighted =
-      (likertTotals[value] * LIKERT_WEIGHT) +
-      (forcedTotals[value] * FORCED_WEIGHT);
-
-    const maxPossible =
-      (4 * 5 * LIKERT_WEIGHT) + (forcedAppearCounts[value] * FORCED_WEIGHT);
-
+    const weighted = (likertTotals[value]*LIKERT_WEIGHT) + (forcedTotals[value]*FORCED_WEIGHT);
+    const maxPossible = (4*5*LIKERT_WEIGHT) + (forcedAppearCounts[value]*FORCED_WEIGHT);
     const normalized = maxPossible > 0 ? Math.round((weighted / maxPossible) * 100) : 0;
 
     return {
       value,
-      _idx: idx,              // stable tie-break
+      _idx: idx,
       likertRaw: likertTotals[value],
       forcedRaw: forcedTotals[value],
       weighted,
       maxPossible,
       score100: clamp(normalized, 0, 100),
-      band: "",               // assigned below (rank-based)
+      band: "",
       rank: null
     };
   });
 
-  // Rank values (stable for ties)
+  // rank (stable ties)
   const ranked = [...results].sort((a,b)=>{
     if(b.score100 !== a.score100) return b.score100 - a.score100;
     return a._idx - b._idx;
@@ -435,7 +381,7 @@ function computeScores(){
     item.band = bandByRank(i);
   });
 
-  // Mirror band/rank back into results array (by value)
+  // mirror back
   const byValue = Object.fromEntries(ranked.map(r=>[r.value, r]));
   results.forEach(r=>{
     r.rank = byValue[r.value].rank;
@@ -445,8 +391,8 @@ function computeScores(){
   return { results, ranked };
 }
 
-// ----------------- charts -----------------
-function wrappedLabelsOptionB(scores){
+// charts
+function wrappedLabels(scores){
   return scores.map(s =>
     s.value.includes(" & ")
       ? s.value.split(" & ").map((part, i, arr) => (i < arr.length - 1 ? part + " &" : part))
@@ -458,13 +404,8 @@ function renderRadar(scores){
   const canvas = el("radarChart");
   if(!canvas) return;
 
-  const labels = wrappedLabelsOptionB(scores);
+  const labels = wrappedLabels(scores);
   const data = scores.map(s=>s.score100);
-
-  const isLight = document.documentElement.getAttribute("data-theme") === "light";
-  const grid = isLight ? "rgba(10,20,40,.14)" : "rgba(255,255,255,.14)";
-  const ticks = isLight ? "rgba(10,20,40,.70)" : "rgba(255,255,255,.75)";
-  const labelColor = isLight ? "#10162a" : "#e9eefc";
 
   if(radarChart) radarChart.destroy();
 
@@ -490,36 +431,22 @@ function renderRadar(scores){
         r: {
           suggestedMin: 0,
           suggestedMax: 100,
-          grid: { color: grid },
-          angleLines: { color: grid },
-          pointLabels: { color: labelColor, font: { size: 11, weight: "600", lineHeight: 1.2 } },
-          ticks: { color: ticks, backdropColor: "transparent", stepSize: 20 }
+          grid: { color: "rgba(10,20,40,.14)" },
+          angleLines: { color: "rgba(10,20,40,.14)" },
+          pointLabels: { color: "#10162a", font: { size: 11, weight: "600", lineHeight: 1.2 } },
+          ticks: { color: "rgba(10,20,40,.70)", backdropColor: "transparent", stepSize: 20 }
         }
       }
     }
   });
 }
 
-/* ✅ Print radar: black/gray for paper + PNG fallback for Chrome */
-function ensurePrintImg(){
-  let img = el("radarChartPrintImg");
-  if(img) return img;
-
-  const canvas = el("radarChartPrint");
-  if(!canvas) return null;
-
-  img = document.createElement("img");
-  img.id = "radarChartPrintImg";
-  img.alt = "Core values radar chart";
-  canvas.insertAdjacentElement("afterend", img);
-  return img;
-}
-
 function renderRadarPrint(scores){
   const canvas = el("radarChartPrint");
-  if(!canvas) return;
+  const img = el("radarChartPrintImg");
+  if(!canvas || !img) return;
 
-  const labels = wrappedLabelsOptionB(scores);
+  const labels = wrappedLabels(scores);
   const data = scores.map(s=>s.score100);
 
   if(radarChartPrint) radarChartPrint.destroy();
@@ -564,18 +491,15 @@ function renderRadarPrint(scores){
   radarChartPrint.resize();
   radarChartPrint.update("none");
 
-  // Convert to image for reliable Chrome printing
-  const img = ensurePrintImg();
-  if(img){
-    try{
-      img.src = canvas.toDataURL("image/png");
-    }catch{
-      // If blocked, the canvas might still print in some environments.
-    }
+  // Convert canvas to PNG (reliable for Chrome PDF)
+  try{
+    img.src = canvas.toDataURL("image/png");
+  }catch{
+    // If blocked, at least the canvas exists (but print CSS hides canvas).
   }
 }
 
-// ----------------- print view population -----------------
+// print view population
 function populatePrintView(results, ranked){
   if(!printMeta || !printDate || !topValuesPrint || !summaryTextPrint || !scoresTablePrint) return;
 
@@ -597,7 +521,7 @@ function populatePrintView(results, ranked){
 
   summaryTextPrint.textContent = buildSummary(ranked.slice(0,2));
 
-  // Scores table (ranked order)
+  // Table (ranked order)
   const tbody = scoresTablePrint.querySelector("tbody");
   if(!tbody) return;
   tbody.innerHTML = "";
@@ -614,7 +538,7 @@ function populatePrintView(results, ranked){
   });
 }
 
-// ----------------- downloads -----------------
+// downloads
 function downloadJson(payload){
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type:"application/json" });
   const a = document.createElement("a");
@@ -633,7 +557,7 @@ function downloadChartPng(){
   a.click();
 }
 
-// ----------------- UI wiring -----------------
+// tabs
 function setTab(which){
   if(which === "likert"){
     tabLikert.classList.add("active");
@@ -660,10 +584,9 @@ function resetState(){
   updateProgress();
 }
 
-// ----------------- init -----------------
+// init
 (function init(){
   const hasSaved = loadSaved();
-  applyTheme(state.theme || "light");
 
   if(hasSaved){
     studentName.value = state.meta?.name || "";
@@ -673,9 +596,6 @@ function resetState(){
   renderLikert();
   renderForced();
   updateProgress();
-
-  // Theme toggle is optional
-  themeToggle?.addEventListener("click", toggleTheme);
 
   tabLikert?.addEventListener("click", ()=> setTab("likert"));
   tabForced?.addEventListener("click", ()=> setTab("forced"));
@@ -722,11 +642,9 @@ function resetState(){
     if(!v.ok) return;
 
     const { results, ranked } = computeScores();
-
-    // show results first so print content can be built
     showResults();
 
-    // Student UI (ranked list + rank-bands)
+    // Student UI
     topValues.innerHTML = "";
     ranked.forEach(item=>{
       const li = document.createElement("li");
@@ -739,6 +657,8 @@ function resetState(){
     // Charts + print content
     renderRadar(results);
     populatePrintView(results, ranked);
+
+    // Prepare print radar image (even on screen)
     renderRadarPrint(results);
   });
 
@@ -748,7 +668,7 @@ function resetState(){
     const { results, ranked } = computeScores();
     const payload = {
       title: "Forgotten Tracks – Core Values Assessment",
-      version: "v1.2",
+      version: "v1.3",
       timestamp: new Date().toISOString(),
       student: { name: state.meta.name || "", grade: state.meta.grade || "" },
       answers: { likert: state.likert, forced: state.forced },
@@ -767,7 +687,7 @@ function resetState(){
     }
   });
 
-  // Print counselor copy (Chrome: choose "Save as PDF")
+  // Print counselor copy (Chrome: Save as PDF)
   if (printBtn) {
     printBtn.addEventListener("click", () => {
       const { results, ranked } = computeScores();
@@ -775,16 +695,14 @@ function resetState(){
       showResults();
       populatePrintView(results, ranked);
 
-      // Ensure print view is visible for printing (some CSS hides it on screen)
+      // ensure print view exists and is visible for print
       if (printView) printView.classList.remove("hidden");
 
+      // render radar to PNG right before print
       renderRadarPrint(results);
 
-      // Small delay lets canvas rasterize to PNG
-      setTimeout(() => {
-        window.print();
-        if (printView) printView.classList.add("hidden");
-      }, 160);
+      // allow DOM to update then print
+      setTimeout(() => window.print(), 140);
     });
   }
 
